@@ -1,0 +1,11 @@
+[Unit]
+Description=Kestro Supporting Services
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/waitress-serve --call kestro:create_app
+RestartSec=5s
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

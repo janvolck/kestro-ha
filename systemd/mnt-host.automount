@@ -1,0 +1,8 @@
+[Unit]
+Description=Automatically mount to host device for debugging
+
+[Automount]
+Where=/mnt/host
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+
+### GET GPIO statuses
+GET http://{{host}}:{{port}}/api/kestro/peripherals/gpios
+
+### GET GPIO status
+GET http://{{host}}:{{port}}/api/kestro/peripherals/gpios/5
+
+### Set GPIO on
+POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/5/on
+
+### Set GPIO off
+POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/5/off
+
+
+### Toggle GPIO
+POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/5/toggle
