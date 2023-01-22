@@ -10,4 +10,4 @@ if [[ "$rc" == "1" ]]; then
 fi
 
 cd ${python_dir}
-python -m debugpy --listen 0.0.0.0:5678 -m kestro
+python -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m kestro
