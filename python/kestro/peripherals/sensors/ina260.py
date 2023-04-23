@@ -2,7 +2,7 @@ import pigpio
 from .base_powersensor import BasePowerSensor
 
 
-class Ina260PowerSensor(BasePowerSensor):
+class Ina260(BasePowerSensor):
 
     _INA260_CURRENT_ADDR = 0x01
     _INA260_BUS_VOLTAGE_ADDR = 0x02

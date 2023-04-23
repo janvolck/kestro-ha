@@ -3,7 +3,7 @@ Description=Mount Host device
 After=network.target
 
 [Mount]
-What=192.168.100.11:/datapool/development/python/kestro/home-assistant
+What=192.168.100.11:/datapool/development/python
 Where=/mnt/host
 Type=nfs
 Options=_netdev,auto

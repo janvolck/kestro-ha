@@ -1,5 +1,6 @@
+from .base_sensor import BaseSensor
 
-class BasePowerSensor:
+class BasePowerSensor(BaseSensor):
 
     def __init__(self):
         self.voltage = None

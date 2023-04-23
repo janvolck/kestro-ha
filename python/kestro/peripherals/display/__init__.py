@@ -3,6 +3,7 @@ from .base_display import BaseDisplay
 
 config = ConfigParser()
 config.read('kestro.ini')
+
 display:BaseDisplay = None
 
 if 'display' in config:
@@ -19,4 +20,4 @@ if 'display' in config:
                 display = HD44780Display()
 
 if display == None:
-    display = BaseDisplay
+    display = BaseDisplay()
