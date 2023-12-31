@@ -1,0 +1,3 @@
+SUBSYSTEM=="meson-gpiomem", GROUP="kestro", MODE="0660"
+SUBSYSTEM=="gpio", GROUP="kestro", MODE="0660"
+SUBSYSTEM=="spidev", GROUP="kestro", MODE="0660"

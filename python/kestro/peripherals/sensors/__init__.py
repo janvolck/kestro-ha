@@ -14,7 +14,7 @@ humidity_sensor: BaseHumiditySensor = None
 if "powersensor" in config:
     if "type" in config["powersensor"]:
         if config["powersensor"]["type"] == "ina260":
-            from .ina260 import Ina260
+            from .ina260_circuitpython import Ina260
 
             power_sensor = Ina260()
 
@@ -30,7 +30,7 @@ if "temperaturesensor" in config:
 
             temperature_sensor = Dht22(pin=pin)
             humidity_sensor = temperature_sensor
-
+       
 
 if "humiditysensor" in config:
     if "type" in config["humiditysensor"]:

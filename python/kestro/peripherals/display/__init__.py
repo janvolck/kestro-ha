@@ -9,7 +9,14 @@ display:BaseDisplay = None
 if 'display' in config:
     if 'type' in config['display']:
         if config['display']['type'] == 'ssd1306':
-            display = None # Ssd1306Display( config['display'] )
+            if 'connection' in config['display']:
+                if config['display']['connection'] == 'spi':
+                    from .ssd1306_display_spi import Ssd1306
+                    display = Ssd1306()
+                else:
+                    from .ssd1306_display import Ssd1306
+                    display = Ssd1306()
+                    
         elif config['display']['type'] == 'hd44780':
             from .hd44780_8bit import HD44780Display
 

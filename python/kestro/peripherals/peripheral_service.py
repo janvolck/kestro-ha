@@ -65,16 +65,19 @@ class PeripheralService:
         elif len(self.network.addresses) == 1:
             addr = self.network.address
 
-        display.update_ip_info(ip_info=addr)
+        display.update_property("ip_addr", addr)
 
         if power_sensor:
             power_sensor.refresh()
-            display.update_power_info(power_sensor.voltage, power_sensor.current)
-            
+            display.update_property("voltage", power_sensor.voltage)
+            display.update_property("current", power_sensor.current)
+
         if temperature_sensor:
             temperature_sensor.refresh()
+            display.update_property("temperature", temperature_sensor.temperature)
 
         if humidity_sensor:
             humidity_sensor.refresh()
+            display.update_property("humidity", humidity_sensor.humidity)
 
         display.refresh()
