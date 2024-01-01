@@ -74,7 +74,6 @@ class Ssd1306(BaseDisplay):
                 self._display_bus, width=self._width, height=self._height
             )
             self._display.brightness = self._brightness
-            self._display.auto_refresh = False
 
     def refresh(self):
         root = displayio.Group()
@@ -95,4 +94,3 @@ class Ssd1306(BaseDisplay):
         )
         root.append(text_area)
         self._display.root_group = root
-        self._display.refresh()
