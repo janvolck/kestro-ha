@@ -10,15 +10,13 @@ from .base_display import BaseDisplay
 class Ssd1306(BaseDisplay):
     def __init__(self, configuration: dict):
         super().__init__()
-
-        displayio.release_displays()
-
+        
         self._width = 128
         self._height = 64
         self._brightness = 1.0
         self._display_bus = None
         self._display = None
-        self._text_format = "Hello Ssd1306"
+        self._text_format = ""
 
         if "width" in configuration:
             self._width = int(configuration["width"])
@@ -73,6 +71,7 @@ class Ssd1306(BaseDisplay):
             self._display = adafruit_displayio_ssd1306.SSD1306(
                 self._display_bus, width=self._width, height=self._height
             )
+            self._display.auto_refresh = False
             self._display.brightness = self._brightness
 
     def refresh(self):
@@ -94,3 +93,4 @@ class Ssd1306(BaseDisplay):
         )
         root.append(text_area)
         self._display.root_group = root
+        self._display.refresh()
