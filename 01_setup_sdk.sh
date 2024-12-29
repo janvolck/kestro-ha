@@ -21,8 +21,8 @@ pip3 install Pillow netifaces
 pip3 install flask flask-jsonpify flask-sqlalchemy flask-restful
 
 # Node.js environment
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
 . $HOME/.profile
 
-nvm install 16.10
+nvm install 22.12.0
 npm install -g @angular/cli
