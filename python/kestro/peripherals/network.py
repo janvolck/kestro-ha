@@ -8,6 +8,8 @@ from sdbus_block.networkmanager import (
 import logging
 
 from typing import Any, Dict, List, Optional, Tuple
+from configparser import ConfigParser
+
 
 NetworkManagerAddressData = List[Dict[str, Tuple[str, Any]]]
 
@@ -19,7 +21,14 @@ class Network:
 
         self.adress = None
         self.addresses = dict()
-        self.ifaces = {"wifi": "wlan0", "lan": "eth0"}
+        self.ifaces = dict()
+        
+        config = ConfigParser()
+        config.read("kestro.ini")
+        if "network" in config:
+            for name in config.options('network'):
+                value = config.get('network', name)
+                self.ifaces[name] = value
 
     def refresh(self):
         address = None

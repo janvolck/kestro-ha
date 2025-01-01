@@ -3,7 +3,7 @@ Description=Mount Host device
 After=network.target
 
 [Mount]
-What=192.168.100.11:/datapool/development/python
+What=192.168.100.14:/home/jan/git
 Where=/mnt/host
 Type=nfs
 Options=_netdev,auto

@@ -6,7 +6,7 @@
   "configurations": [
     {
       "name": "Kestro Home Assistant Services",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "cwd": "${workspaceFolder}/python",
       "module": "kestro",
@@ -14,15 +14,15 @@
     },
     {
       "name": "Kestro Home Assistant Services (Attach)",
-      "type": "python",
+      "type": "debugpy",
       "request": "attach",
       "connect": {
-        "host": "192.168.100.135",
+        "host": "192.168.100.54",
         "port": 5678
       },
       "pathMappings": [{
         "localRoot": "${workspaceFolder}",
-        "remoteRoot": "/mnt/host"
+        "remoteRoot": "/mnt/host/janvolck/kestro-ha"
       }]
     },
     {

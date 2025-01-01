@@ -65,6 +65,25 @@ class Ssd1306(BaseDisplay):
                     reset=pin_reset,
                     baudrate=baudrate,
                 )
+            
+            if configuration["connection"] == "i2c":
+                i2c = board.I2C()
+                pin_reset = None
+                address = 0x3C
+
+                if "pin_reset" in configuration and hasattr(
+                    board, configuration["pin_reset"]
+                ):
+                    pin_reset = getattr(board, configuration["pin_reset"])
+
+                if "address" in configuration:
+                    address = int(configuration["address"],0)
+
+                self._display_bus = displayio.I2CDisplay(
+                    i2c,
+                    device_address=address, 
+                    reset=pin_reset
+                )
 
         if self._display_bus is not None:
             self._display_bus.reset()

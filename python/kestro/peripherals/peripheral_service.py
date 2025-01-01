@@ -63,12 +63,11 @@ class PeripheralService:
                     if self.ip_info_index >= len(self.network.addresses):
                         self.ip_info_index = 0
 
-                iface = list(self.network.addresses)[self.ip_info_index]
-                addr = "%s: %s" % (iface, self.network.addresses[iface])
-
             elif len(self.network.addresses) == 1:
-                addr = self.network.address
+                self.ip_info_index = 0
 
+            iface = list(self.network.addresses)[self.ip_info_index]
+            addr = "%s: %s" % (iface, self.network.addresses[iface])
             display.update_property("ip_addr", addr)
 
             if distance_sensor:
