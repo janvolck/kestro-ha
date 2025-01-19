@@ -8,6 +8,9 @@ class BaseGpio:
         result = {"inputs": None, "outputs": None}
         return result
 
+    def has_pin(self, pin):
+        return False
+
     def output_status(self, pin):
         result = None
         return result
