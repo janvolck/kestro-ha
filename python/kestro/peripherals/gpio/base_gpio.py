@@ -1,25 +1,31 @@
 class BaseGpio:
 
     def __init__(self):
-        self.inputs = []
-        self.outputs = []
+        self.inputs = {}
+        self.outputs = {}
 
     def status(self):
         result = {"inputs": None, "outputs": None}
         return result
 
-    def has_pin(self, pin):
+    def has_pin(self, id):
+        if id in self.inputs:
+            return True
+        
+        if id in self.outputs:
+            return True
+        
         return False
 
-    def output_status(self, pin):
+    def output_status(self, id):
         result = None
         return result
 
-    def enable(self, pin):
+    def enable(self, id):
         pass
     
-    def disable(self, pin):
+    def disable(self, id):
         pass
 
-    def toggle(self, pin):
+    def toggle(self, id):
         pass

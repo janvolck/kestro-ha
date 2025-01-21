@@ -8,42 +8,44 @@ from .base_gpio import BaseGpio
 
 class Mcp23017Gpio(BaseGpio):
 
+    _PINS = [
+        "gpa0",
+        "gpa1",
+        "gpa2",
+        "gpa3",
+        "gpa4",
+        "gpa5",
+        "gpa6",
+        "gpa7",
+        "gpb0",
+        "gpb1",
+        "gpb2",
+        "gpb3",
+        "gpb4",
+        "gpb5",
+        "gpb6",
+        "gpb7",
+    ]
+
     def __init__(self, id: str, configuration: ConfigParser):
         super().__init__()
 
         if not configuration.has_section(id):
-            raise KeyError("configuration section {} not found" % id)
-        
+            raise KeyError(f"""configuration section {id} not found""")
+
         self.mcp_config = configuration[id]
-        
+        self.outputs = dict[str, any]
+        self.inputs = dict[str, any]
+
         address = _MCP23017_ADDRESS
-        if 'address' in self.mcp_config:
-            address = int(self.mcp_config["address"],0)
+        if "address" in self.mcp_config:
+            address = int(self.mcp_config["address"], 0)
 
-        i2c = board.I2C()        
-        self.mcp = MCP23017(i2c,address=address)
-        
-        pins = [
-            "gpa0",
-            "gpa1",
-            "gpa2",
-            "gpa3",
-            "gpa4",
-            "gpa5",
-            "gpa6",
-            "gpa7",
-            "gpb0",
-            "gpb1",
-            "gpb2",
-            "gpb3",
-            "gpb4",
-            "gpb5",
-            "gpb6",
-            "gpb7",
-        ]
+        i2c = board.I2C()
+        self.mcp = MCP23017(i2c, address=address)
 
-        for pin in range(0, len(pins)):
-            pin_id = pins[pin]
+        for pin in range(0, len(self._PINS)):
+            pin_id = self._PINS[pin]
             mcp_pin = self.mcp.get_pin(pin)
             gpio_config = None
             gpio_id = None
@@ -75,20 +77,21 @@ class Mcp23017Gpio(BaseGpio):
             if gpio_mode:
                 if "input" == gpio_mode:
                     mcp_pin.switch_to_input(pull=gpio_state)
-                    self.inputs.append(mcp_pin)
+                    self.inputs[gpio_id] = mcp_pin
 
                 elif "output" == gpio_mode:
                     mcp_pin.switch_to_output(value=gpio_value)
-                    self.outputs.append(mcp_pin)
+                    self.outputs[gpio_id] = mcp_pin
 
-        self.mcp.interrupt_enable = 0x00FF
-        self.mcp.interrupt_configuration = 0x0000
-        self.mcp.io_control = 0x44        
-        self.mcp.clear_ints()
-
-        interrupt = digitalio.DigitalInOut(board.D13)
-        interrupt.direction = digitalio.Direction.INPUT
-        interrupt.pull = digitalio.Pull.UP
+        # TODO check for adafruit keypad logic on configured inputs or use some async thread for polling
+        # self.mcp.interrupt_enable = 0x00FF
+        # self.mcp.interrupt_configuration = 0x0000
+        # self.mcp.io_control = 0x44
+        # self.mcp.clear_ints()
+        
+        # interrupt = digitalio.DigitalInOut(board.D13)
+        # interrupt.direction = digitalio.Direction.INPUT
+        # interrupt.pull = digitalio.Pull.UP
 
     def __del__(self):
         pass
@@ -98,10 +101,11 @@ class Mcp23017Gpio(BaseGpio):
         inputs = []
         outputs = []
 
-        for pin in range(0, 8):
-            outputs.append({"pin": pin, "value": not (self.outputs[pin].value)})
+        for key in self.inputs.keys:
+            inputs.append({"pin": key, "value": not (self.inputs[key].value)})
 
-            inputs.append({"pin": pin, "value": not (self.inputs[pin].value)})
+        for key in self.outputs.keys:
+            outputs.append({"pin": key, "value": not (self.outputs[key].value)})
 
         if len(inputs) > 0:
             result["inputs"] = inputs
@@ -111,49 +115,29 @@ class Mcp23017Gpio(BaseGpio):
 
         return result
 
-    def has_pin(self, pin):
-        return False
-
-    def output_status(self, pin):
+    def output_status(self, pin: str):
         result = None
-        if pin < 0 or pin >= len(self.outputs):
-            raise ValueError(f"""pin must be between 0 and {len(self.outputs)}""")
-        else:
+        if pin in self.outputs:
             result = {"pin": pin, "value": not (self.outputs[pin].value)}
+        else:
+            raise ValueError("pin not found")
 
         return result
 
     def enable(self, pin):
-        if pin < 0 or pin >= len(self.outputs):
-            raise ValueError(f"""pin must be between 0 and {len(self.outputs)}""")
-        else:
+        if pin in self.outputs:
             self.outputs[pin].value = False
+        else:
+            raise ValueError("pin not found")
 
     def disable(self, pin):
-        if pin < 0 or pin >= len(self.outputs):
-            raise ValueError(f"""pin must be between 0 and {len(self.outputs)}""")
-        else:
+        if pin in self.outputs:
             self.outputs[pin].value = True
+        else:
+            raise ValueError("pin not found")
 
     def toggle(self, pin):
-        if pin < 0 or pin >= len(self.outputs):
-            raise ValueError(f"""pin must be between 0 and {len(self.outputs)}""")
-        else:
+        if pin in self.outputs:
             self.outputs[pin].value = not self.outputs[pin].value
-
-    def print_interrupt(self, port):
-        flags = self.mcp.int_flaga
-        self.mcp.clear_inta()
-        for pin_flag in flags:
-            print("Interrupt connected to Pin: {}".format(port))
-            print(
-                "Pin number: {} changed to: {}".format(
-                    pin_flag, self.inputs[pin_flag].value
-                )
-            )
-
-            if self.inputs[pin_flag].value:
-                if self.outputs[pin_flag].value:
-                    self.outputs[pin_flag].value = False
-                else:
-                    self.outputs[pin_flag].value = True
+        else:
+            raise ValueError("pin not found")
