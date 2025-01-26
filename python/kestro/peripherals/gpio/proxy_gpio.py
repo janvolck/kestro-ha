@@ -5,7 +5,7 @@ class ProxyGpio(BaseGpio):
 
     def __init__(self):
         super().__init__()
-        self.drivers: dict[str,BaseGpio] = {}
+        self.drivers: dict[str, BaseGpio] = {}
 
     def __del__(self):
         pass
@@ -20,18 +20,18 @@ class ProxyGpio(BaseGpio):
         result = {"inputs": None, "outputs": None}
         inputs = []
         outputs = []
-        
+
         for driver in self.drivers.values():
             driver_status = driver.status()
-            if driver_status: 
-                if driver_status.outputs:
-                    for output in driver_status.outputs:
+            if driver_status:
+                if "outputs" in driver_status and driver_status["outputs"]:
+                    for output in driver_status["outputs"]:
                         outputs.append(output)
 
-                if driver_status.inputs:
-                    for input in driver_status.inputs:
+                if "inputs" in driver_status and driver_status["inputs"]:
+                    for input in driver_status["inputs"]:
                         inputs.append(input)
-                
+
         if len(inputs) > 0:
             result["inputs"] = inputs
 

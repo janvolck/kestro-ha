@@ -2,6 +2,7 @@ import board
 import digitalio
 
 from adafruit_mcp230xx.mcp23017 import MCP23017, _MCP23017_ADDRESS
+from adafruit_mcp230xx.digital_inout import DigitalInOut
 from configparser import ConfigParser
 from .base_gpio import BaseGpio
 
@@ -34,8 +35,8 @@ class Mcp23017Gpio(BaseGpio):
             raise KeyError(f"""configuration section {id} not found""")
 
         self.mcp_config = configuration[id]
-        self.outputs = dict[str, any]
-        self.inputs = dict[str, any]
+        self.outputs: dict[str, DigitalInOut] = {}
+        self.inputs: dict[str, DigitalInOut] = {}
 
         address = _MCP23017_ADDRESS
         if "address" in self.mcp_config:
@@ -88,7 +89,7 @@ class Mcp23017Gpio(BaseGpio):
         # self.mcp.interrupt_configuration = 0x0000
         # self.mcp.io_control = 0x44
         # self.mcp.clear_ints()
-        
+
         # interrupt = digitalio.DigitalInOut(board.D13)
         # interrupt.direction = digitalio.Direction.INPUT
         # interrupt.pull = digitalio.Pull.UP
@@ -101,11 +102,11 @@ class Mcp23017Gpio(BaseGpio):
         inputs = []
         outputs = []
 
-        for key in self.inputs.keys:
-            inputs.append({"pin": key, "value": not (self.inputs[key].value)})
+        for id, input in self.inputs.items():
+            inputs.append({"pin": id, "value": not (input.value)})
 
-        for key in self.outputs.keys:
-            outputs.append({"pin": key, "value": not (self.outputs[key].value)})
+        for id, output in self.outputs.items():
+            outputs.append({"pin": id, "value": not (output.value)})
 
         if len(inputs) > 0:
             result["inputs"] = inputs
