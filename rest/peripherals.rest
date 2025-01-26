@@ -3,7 +3,7 @@
 GET http://{{host}}:{{port}}/api/kestro/peripherals/gpios
 
 ### GET GPIO status
-GET http://{{host}}:{{port}}/api/kestro/peripherals/gpios/5
+GET http://{{host}}:{{port}}/api/kestro/peripherals/gpios/button1
 
 ### Set GPIO on
 POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/5/on

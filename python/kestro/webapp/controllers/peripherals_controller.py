@@ -15,15 +15,15 @@ def gpios_status():
     return jsonify(peripheral_service.gpio().status())
 
 
-@api.route("/gpios/output/<int:pin_id>")
-def gpio_output_status(pin_id):
+@api.route("/gpios/<string:pin_id>")
+def gpio_pin_status(pin_id):
     if not peripheral_service:
         abort(500)
 
-    return jsonify(peripheral_service.gpio().output_status(pin_id))
+    return jsonify(peripheral_service.gpio().pin_status(pin_id))
 
 
-@api.route("/gpios/output/<int:pin_id>/on", methods=["POST"])
+@api.route("/gpios/<string:pin_id>/on", methods=["POST"])
 def on(pin_id):
     if not peripheral_service:
         abort(500)
@@ -32,7 +32,7 @@ def on(pin_id):
     return ("", 204)
 
 
-@api.route("/gpios/output/<int:pin_id>/off", methods=["POST"])
+@api.route("/gpios/<string:pin_id>/off", methods=["POST"])
 def off(pin_id):
     if not peripheral_service:
         abort(500)
@@ -41,7 +41,7 @@ def off(pin_id):
     return ("", 204)
 
 
-@api.route("/gpios/output/<int:pin_id>/toggle", methods=["POST"])
+@api.route("/gpios/<string:pin_id>/toggle", methods=["POST"])
 def toggle(pin_id):
     if not peripheral_service:
         abort(500)

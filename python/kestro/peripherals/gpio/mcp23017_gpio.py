@@ -35,8 +35,6 @@ class Mcp23017Gpio(BaseGpio):
             raise KeyError(f"""configuration section {id} not found""")
 
         self.mcp_config = configuration[id]
-        self.outputs: dict[str, DigitalInOut] = {}
-        self.inputs: dict[str, DigitalInOut] = {}
 
         address = _MCP23017_ADDRESS
         if "address" in self.mcp_config:
@@ -116,12 +114,14 @@ class Mcp23017Gpio(BaseGpio):
 
         return result
 
-    def output_status(self, pin: str):
+    def pin_status(self, pin: str):
         result = None
-        if pin in self.outputs:
+        if pin in self.inputs:
+            result = {"pin": pin, "value": not (self.inputs[pin].value)}
+        elif pin in self.outputs:
             result = {"pin": pin, "value": not (self.outputs[pin].value)}
         else:
-            raise ValueError("pin not found")
+            raise ValueError(f"""pin {pin} not found""")
 
         return result
 
@@ -129,16 +129,16 @@ class Mcp23017Gpio(BaseGpio):
         if pin in self.outputs:
             self.outputs[pin].value = False
         else:
-            raise ValueError("pin not found")
+            raise ValueError(f"""pin {pin} not found""")
 
     def disable(self, pin):
         if pin in self.outputs:
             self.outputs[pin].value = True
         else:
-            raise ValueError("pin not found")
+            raise ValueError(f"""pin {pin} not found""")
 
     def toggle(self, pin):
         if pin in self.outputs:
             self.outputs[pin].value = not self.outputs[pin].value
         else:
-            raise ValueError("pin not found")
+            raise ValueError(f"""pin {pin} not found""")

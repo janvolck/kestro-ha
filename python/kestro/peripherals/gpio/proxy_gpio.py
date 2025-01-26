@@ -40,20 +40,47 @@ class ProxyGpio(BaseGpio):
 
         return result
 
+    def pin_status(self, pin: str):
+        result = None
+        for driver in self.drivers.values():
+            if driver.has_pin(pin):
+                result = driver.pin_status(pin)
+                break
+
+        if not result:
+            raise ValueError(f"""pin {pin} not found""")
+
+        return result
+
     def enable(self, pin):
-        if pin < 0 or pin >= len(self.outputs):
-            raise ValueError(f"""pin must be between 0 and {len(self.outputs)}""")
-        else:
-            self.outputs[pin].value = False
+        pinFound = False
+
+        for driver in self.drivers.values():
+            if driver.has_pin(pin):
+                driver.enable(pin)
+                pinFound = True
+
+        if not pinFound:
+            raise ValueError(f"""pin {pin} not found""")
 
     def disable(self, pin):
-        if pin < 0 or pin >= len(self.outputs):
-            raise ValueError(f"""pin must be between 0 and {len(self.outputs)}""")
-        else:
-            self.outputs[pin].value = True
+        pinFound = False
+
+        for driver in self.drivers.values():
+            if driver.has_pin(pin):
+                driver.disable(pin)
+                pinFound = True
+
+        if not pinFound:
+            raise ValueError(f"""pin {pin} not found""")
 
     def toggle(self, pin):
-        if pin < 0 or pin >= len(self.outputs):
-            raise ValueError(f"""pin must be between 0 and {len(self.outputs)}""")
-        else:
-            self.outputs[pin].value = not self.outputs[pin].value
+        pinFound = False
+
+        for driver in self.drivers.values():
+            if driver.has_pin(pin):
+                driver.toggle(pin)
+                pinFound = True
+
+        if not pinFound:
+            raise ValueError(f"""pin {pin} not found""")
