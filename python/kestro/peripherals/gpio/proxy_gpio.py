@@ -84,3 +84,7 @@ class ProxyGpio(BaseGpio):
 
         if not pinFound:
             raise ValueError(f"""pin {pin} not found""")
+
+    async def refresh(self):
+        for driver in self.drivers.values():
+            await driver.refresh()

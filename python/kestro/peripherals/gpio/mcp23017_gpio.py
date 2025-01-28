@@ -142,3 +142,7 @@ class Mcp23017Gpio(BaseGpio):
             self.outputs[pin].value = not self.outputs[pin].value
         else:
             raise ValueError(f"""pin {pin} not found""")
+
+
+    async def refresh(self):
+        pass

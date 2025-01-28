@@ -1,3 +1,5 @@
+import asyncio
+
 class BaseGpio:
 
     def __init__(self):
@@ -28,4 +30,7 @@ class BaseGpio:
         pass
 
     def toggle(self, id: str):
+        pass
+
+    async def refresh(self):
         pass

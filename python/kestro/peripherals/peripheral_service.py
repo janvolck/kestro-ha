@@ -1,4 +1,5 @@
 import time
+import asyncio
 
 from threading import Thread
 from .network import Network
@@ -47,12 +48,12 @@ class PeripheralService:
         import time
 
         while not self._aborted:
-            self._update()
-            time.sleep(1)
+            asyncio.run(self._refresh())
+            time.sleep(0.1)
 
-    def _update(self):
+    async def _refresh(self):
         try:
-            self.network.refresh()
+            await self.network.refresh()
 
             addr = "No Connection"
             if len(self.network.addresses) > 1:
@@ -65,10 +66,15 @@ class PeripheralService:
 
             elif len(self.network.addresses) == 1:
                 self.ip_info_index = 0
+            else:
+                self.ip_info_index = -1
 
-            iface = list(self.network.addresses)[self.ip_info_index]
-            addr = "%s: %s" % (iface, self.network.addresses[iface])
-            display.update_property("ip_addr", addr)
+            if self.ip_info_index < 0:
+                display.update_property("ip_addr", None)
+            else:
+                iface = list(self.network.addresses)[self.ip_info_index]
+                addr = "%s: %s" % (iface, self.network.addresses[iface])
+                display.update_property("ip_addr", addr)
 
             if distance_sensor:
                 distance_sensor.refresh()
@@ -86,6 +92,9 @@ class PeripheralService:
             if temperature_sensor:
                 temperature_sensor.refresh()
                 display.update_property("temperature", temperature_sensor.temperature)
+
+            if gpio:
+                await gpio.refresh()
 
             display.refresh()
         except RuntimeError:

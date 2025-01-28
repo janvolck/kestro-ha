@@ -1,5 +1,6 @@
+import asyncio
 import sdbus
-from sdbus_block.networkmanager import (
+from sdbus_async.networkmanager import (
     IPv4Config,
     NetworkDeviceGeneric,
     NetworkManager,
@@ -22,15 +23,15 @@ class Network:
         self.adress = None
         self.addresses = dict()
         self.ifaces = dict()
-        
+
         config = ConfigParser()
         config.read("kestro.ini")
         if "network" in config:
-            for name in config.options('network'):
-                value = config.get('network', name)
+            for name in config.options("network"):
+                value = config.get("network", name)
                 self.ifaces[name] = value
 
-    def refresh(self):
+    async def refresh(self):
         address = None
         addresses = dict()
 
@@ -38,18 +39,22 @@ class Network:
             try:
                 iface = self.ifaces[name]
                 nm = NetworkManager(sdbus.sd_bus_open_system())
-                device_path = nm.get_device_by_ip_iface(iface)
+                device_path = await nm.get_device_by_ip_iface(iface)
 
                 if device_path:
-                    generic_device = NetworkDeviceGeneric(device_path, sdbus.sd_bus_open_system())
-                    device_ip4_conf_path: str = generic_device.ip4_config
+                    generic_device = NetworkDeviceGeneric(
+                        device_path, sdbus.sd_bus_open_system()
+                    )
+                    device_ip4_conf_path: str = await generic_device.ip4_config
                     if device_ip4_conf_path == "/":
                         continue
                     if not generic_device.managed:
                         continue
 
-                    ip4_conf = IPv4Config(device_ip4_conf_path, sdbus.sd_bus_open_system())
-                    address_data: NetworkManagerAddressData = ip4_conf.address_data
+                    ip4_conf = IPv4Config(
+                        device_ip4_conf_path, sdbus.sd_bus_open_system()
+                    )
+                    address_data: NetworkManagerAddressData = await ip4_conf.address_data
                     for inetaddr in address_data:
                         self.logger.debug(
                             "Network address %s on iface %s"
