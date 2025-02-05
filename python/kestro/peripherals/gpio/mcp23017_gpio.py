@@ -34,26 +34,30 @@ class Mcp23017Gpio(BaseGpio):
         if not configuration.has_section(id):
             raise KeyError(f"""configuration section {id} not found""")
 
-        self.mcp_config = configuration[id]
+        self.__mcp_config = configuration[id]
+        self.__pin_to_gpio_id: dict[int, str] = {}
+        self.__pin_states: dict[int, bool] = {}
+        self.__pins: dict[int, digitalio.DigitalInOut] = {}
 
         address = _MCP23017_ADDRESS
-        if "address" in self.mcp_config:
-            address = int(self.mcp_config["address"], 0)
+        if "address" in self.__mcp_config:
+            address = int(self.__mcp_config["address"], 0)
 
         i2c = board.I2C()
         self.mcp = MCP23017(i2c, address=address)
 
+        input_interrupts = 0
         for pin in range(0, len(self._PINS)):
             pin_id = self._PINS[pin]
             mcp_pin = self.mcp.get_pin(pin)
             gpio_config = None
-            gpio_id = None
-            gpio_mode = None
+            gpio_id: str = None
+            gpio_mode: str = None
             gpio_state: digitalio.Pull = None
-            gpio_value = False
+            gpio_value: bool = False
 
-            if pin_id in self.mcp_config:
-                gpio_id = self.mcp_config.get(pin_id)
+            if pin_id in self.__mcp_config:
+                gpio_id = self.__mcp_config.get(pin_id)
                 if configuration.has_section(gpio_id):
                     gpio_config = configuration[gpio_id]
 
@@ -73,24 +77,26 @@ class Mcp23017Gpio(BaseGpio):
                     if "true" == __value:
                         gpio_value = True
 
+                self.__pin_to_gpio_id[pin] = gpio_id
+
             if gpio_mode:
                 if "input" == gpio_mode:
+                    input_interrupts |= 1 << pin
                     mcp_pin.switch_to_input(pull=gpio_state)
-                    self.inputs[gpio_id] = mcp_pin
+                    self.inputs[gpio_id] = mcp_pin.value
+                    self.__pins[gpio_id] = mcp_pin
+                    self.__pin_states[gpio_id] = mcp_pin.value
 
                 elif "output" == gpio_mode:
                     mcp_pin.switch_to_output(value=gpio_value)
-                    self.outputs[gpio_id] = mcp_pin
+                    self.outputs[gpio_id] = mcp_pin.value
+                    self.__pins[gpio_id] = mcp_pin
+                    self.__pin_states[gpio_id] = mcp_pin.value
 
-        # TODO check for adafruit keypad logic on configured inputs or use some async thread for polling
-        # self.mcp.interrupt_enable = 0x00FF
-        # self.mcp.interrupt_configuration = 0x0000
-        # self.mcp.io_control = 0x44
-        # self.mcp.clear_ints()
-
-        # interrupt = digitalio.DigitalInOut(board.D13)
-        # interrupt.direction = digitalio.Direction.INPUT
-        # interrupt.pull = digitalio.Pull.UP
+        self.mcp.interrupt_enable = input_interrupts
+        self.mcp.interrupt_configuration = 0x0000
+        self.mcp.io_control = 0x44
+        self.mcp.clear_ints()
 
     def __del__(self):
         pass
@@ -101,10 +107,10 @@ class Mcp23017Gpio(BaseGpio):
         outputs = []
 
         for id, input in self.inputs.items():
-            inputs.append({"pin": id, "value": not (input.value)})
+            inputs.append({"pin": id, "value": not (input)})
 
         for id, output in self.outputs.items():
-            outputs.append({"pin": id, "value": not (output.value)})
+            outputs.append({"pin": id, "value": not (output)})
 
         if len(inputs) > 0:
             result["inputs"] = inputs
@@ -116,33 +122,70 @@ class Mcp23017Gpio(BaseGpio):
 
     def pin_status(self, pin: str):
         result = None
-        if pin in self.inputs:
-            result = {"pin": pin, "value": not (self.inputs[pin].value)}
-        elif pin in self.outputs:
-            result = {"pin": pin, "value": not (self.outputs[pin].value)}
+        if pin in self.__pin_states:
+            result = {"pin": pin, "value": not (self.__pin_states[pin])}
         else:
             raise ValueError(f"""pin {pin} not found""")
 
         return result
 
     def enable(self, pin):
-        if pin in self.outputs:
-            self.outputs[pin].value = False
+        if pin in self.outputs and pin in self.__pins:
+            self.__pins[pin] = False
         else:
             raise ValueError(f"""pin {pin} not found""")
 
     def disable(self, pin):
-        if pin in self.outputs:
-            self.outputs[pin].value = True
+        if pin in self.outputs and pin in self.__pins:
+            self.__pins[pin].value = True
         else:
             raise ValueError(f"""pin {pin} not found""")
 
     def toggle(self, pin):
-        if pin in self.outputs:
-            self.outputs[pin].value = not self.outputs[pin].value
+        if pin in self.outputs and pin in self.__pins:
+            self.__pins[pin].value = not self.__pins[pin].value
         else:
             raise ValueError(f"""pin {pin} not found""")
 
-
     async def refresh(self):
-        pass
+        flags = self.mcp.int_flag
+        self.mcp.clear_ints()
+
+        interrupts = []
+        for pin in flags:
+            if pin in self.__pin_to_gpio_id:
+                gpio_id = self.__pin_to_gpio_id[pin]
+                interrupts.append(gpio_id)
+
+        for gpio_id, pin in self.__pins.items():
+            known_state = None
+            current_state = self.__pins[gpio_id].value
+
+            if gpio_id in self.__pin_states:
+                known_state = self.__pin_states[gpio_id]
+
+            # check if we might have missed a state change via one of the interrupt flags
+            if known_state == current_state and gpio_id in interrupts:
+                current_state = not current_state
+
+            if known_state != current_state:
+                print(
+                    f"""Pin number: {pin} mapped to {gpio_id} changed to value {current_state}"""
+                )
+                self.__pin_states[gpio_id] = current_state
+
+                if gpio_id in self.inputs:
+                    self.inputs[gpio_id] = current_state
+                elif gpio_id in self.outputs:
+                    self.outputs[gpio_id] = current_state
+
+        # how will we notify a business application a button has been pressed ???
+        # --> subscriber pattern could be implemented on BaseGpio
+        # --> subscribe to pin --> when pin is pressed lookup subscribers for that pin and publish
+        # when calling refresh we should trigger an input as high when it was pressed
+        # and on a next call put it back to low so we at least now it was pressed
+        # the int_flag should help us to detect an input was changed
+        # although the current self.input state might be the same mcp_pin state,
+        # when a flag was set we should still toggle the self.input state
+        # when a flag is not set we copy the state from the input state
+        # this should allow us to correctly handle button presses.
