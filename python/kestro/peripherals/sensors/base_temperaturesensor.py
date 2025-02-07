@@ -9,5 +9,5 @@ class BaseTemperatureSensor(BaseSensor):
         result = {"temperature": self.temperature}
         return result
 
-    def refresh(self):
+    async def refresh(self):
         pass

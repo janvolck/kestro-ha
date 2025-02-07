@@ -25,7 +25,7 @@ class HcSr04(BaseDistanceSensor):
             
         self.distance = None
 
-    def refresh(self):
+    async def refresh(self):
         if self._hcsr04:
             try:
                 self.distance = self._hcsr04.distance

@@ -20,7 +20,7 @@ class Dht22(BaseTemperatureSensor, BaseHumiditySensor):
         result = {"temperature": self.temperature, "humidity": self.humidity}
         return result
 
-    def refresh(self):
+    async def refresh(self):
         if self._dht22:
             try:
                 self.temperature = self._dht22.temperature

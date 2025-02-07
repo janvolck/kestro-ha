@@ -8,5 +8,5 @@ class BaseSensor:
         result = {}
         return result
 
-    def refresh(self):
+    async def refresh(self):
         pass

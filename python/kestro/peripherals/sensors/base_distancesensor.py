@@ -9,5 +9,5 @@ class BaseDistanceSensor(BaseSensor):
         result = {"distance": self.distance}
         return result
 
-    def refresh(self):
+    async def refresh(self):
         pass

@@ -9,5 +9,5 @@ class BaseHumiditySensor(BaseSensor):
         result = {"humidity": self.humidity}
         return result
 
-    def refresh(self):
+    async def refresh(self):
         pass

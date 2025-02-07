@@ -77,20 +77,20 @@ class PeripheralService:
                 display.update_property("ip_addr", addr)
 
             if distance_sensor:
-                distance_sensor.refresh()
+                await distance_sensor.refresh()
                 display.update_property("distance", distance_sensor.distance)
 
             if humidity_sensor:
-                humidity_sensor.refresh()
+                await humidity_sensor.refresh()
                 display.update_property("humidity", humidity_sensor.humidity)
 
             if power_sensor:
-                power_sensor.refresh()
+                await power_sensor.refresh()
                 display.update_property("voltage", power_sensor.voltage)
                 display.update_property("current", power_sensor.current)
 
             if temperature_sensor:
-                temperature_sensor.refresh()
+                await temperature_sensor.refresh()
                 display.update_property("temperature", temperature_sensor.temperature)
 
             if gpio:

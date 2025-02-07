@@ -10,5 +10,5 @@ class BasePowerSensor(BaseSensor):
         result = {"voltage": self.voltage, "current": self.current}
         return result
 
-    def refresh(self):
+    async def refresh(self):
         pass
