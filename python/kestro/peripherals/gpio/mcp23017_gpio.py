@@ -131,13 +131,13 @@ class Mcp23017Gpio(BaseGpio):
 
     def enable(self, pin):
         if pin in self.outputs and pin in self.__pins:
-            self.__pins[pin] = False
+            self.__pins[pin].value = True
         else:
             raise ValueError(f"""pin {pin} not found""")
 
     def disable(self, pin):
         if pin in self.outputs and pin in self.__pins:
-            self.__pins[pin].value = True
+            self.__pins[pin].value = False
         else:
             raise ValueError(f"""pin {pin} not found""")
 
@@ -178,14 +178,3 @@ class Mcp23017Gpio(BaseGpio):
                     self.inputs[gpio_id] = current_state
                 elif gpio_id in self.outputs:
                     self.outputs[gpio_id] = current_state
-
-        # how will we notify a business application a button has been pressed ???
-        # --> subscriber pattern could be implemented on BaseGpio
-        # --> subscribe to pin --> when pin is pressed lookup subscribers for that pin and publish
-        # when calling refresh we should trigger an input as high when it was pressed
-        # and on a next call put it back to low so we at least now it was pressed
-        # the int_flag should help us to detect an input was changed
-        # although the current self.input state might be the same mcp_pin state,
-        # when a flag was set we should still toggle the self.input state
-        # when a flag is not set we copy the state from the input state
-        # this should allow us to correctly handle button presses.

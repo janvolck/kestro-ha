@@ -6,11 +6,11 @@ GET http://{{host}}:{{port}}/api/kestro/peripherals/gpios
 GET http://{{host}}:{{port}}/api/kestro/peripherals/gpios/button1
 
 ### Set GPIO on
-POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/5/on
+POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/led1/on
 
 ### Set GPIO off
-POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/5/off
+POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/led1/off
 
 
 ### Toggle GPIO
-POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/5/toggle
+POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/led1/toggle
