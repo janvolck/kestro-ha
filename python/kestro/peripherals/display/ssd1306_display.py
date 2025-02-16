@@ -3,19 +3,15 @@ import displayio
 import terminalio
 import adafruit_displayio_ssd1306
 
+from .base_display import BaseDisplay
 from adafruit_display_text import label
 from configparser import ConfigParser
-from .base_display import BaseDisplay
 
 
 class Ssd1306(BaseDisplay):
     def __init__(self, id: str, configuration: ConfigParser):
-        super().__init__()
+        super().__init__(id, configuration)
 
-        if not configuration.has_section(id):
-            raise KeyError(f"""configuration section {id} not found""")
-
-        self.__ssd1306_config = configuration[id]
         self._width = 128
         self._height = 64
         self._brightness = 1.0
@@ -23,47 +19,47 @@ class Ssd1306(BaseDisplay):
         self._display = None
         self._text_format = ""
 
-        if "width" in self.__ssd1306_config:
-            self._width = int(self.__ssd1306_config["width"])
+        if "width" in self._configuration:
+            self._width = int(self._configuration["width"])
 
-        if "height" in self.__ssd1306_config:
-            self._height = int(self.__ssd1306_config["height"])
+        if "height" in self._configuration:
+            self._height = int(self._configuration["height"])
 
-        if "brightness" in self.__ssd1306_config:
-            self._brightness = float(self.__ssd1306_config["brightness"])
+        if "brightness" in self._configuration:
+            self._brightness = float(self._configuration["brightness"])
 
-        if "text_format" in self.__ssd1306_config:
-            self._text_format = str(self.__ssd1306_config["text_format"]).replace(
+        if "text_format" in self._configuration:
+            self._text_format = str(self._configuration["text_format"]).replace(
                 "\\n", "\n"
             )
 
-        if "connection" in self.__ssd1306_config:
-            if self.__ssd1306_config["connection"] == "spi":
+        if "connection" in self._configuration:
+            if self._configuration["connection"] == "spi":
                 spi = board.SPI()
                 pin_cs = None
                 pin_dc = None
                 pin_reset = None
                 baudrate = 1000000
 
-                if "pin_cs" in self.__ssd1306_config and hasattr(
-                    board, self.__ssd1306_config["pin_cs"]
+                if "pin_cs" in self._configuration and hasattr(
+                    board, self._configuration["pin_cs"]
                 ):
-                    pin_cs = getattr(board, self.__ssd1306_config["pin_cs"])
+                    pin_cs = getattr(board, self._configuration["pin_cs"])
 
-                if "pin_dc" in self.__ssd1306_config and hasattr(
-                    board, self.__ssd1306_config["pin_dc"]
+                if "pin_dc" in self._configuration and hasattr(
+                    board, self._configuration["pin_dc"]
                 ):
-                    pin_dc = getattr(board, self.__ssd1306_config["pin_dc"])
+                    pin_dc = getattr(board, self._configuration["pin_dc"])
 
-                if "pin_reset" in self.__ssd1306_config and hasattr(
-                    board, self.__ssd1306_config["pin_reset"]
+                if "pin_reset" in self._configuration and hasattr(
+                    board, self._configuration["pin_reset"]
                 ):
-                    pin_reset = getattr(board, self.__ssd1306_config["pin_reset"])
+                    pin_reset = getattr(board, self._configuration["pin_reset"])
 
-                if "baudrate" in self.__ssd1306_config and hasattr(
-                    board, self.__ssd1306_config["baudrate"]
+                if "baudrate" in self._configuration and hasattr(
+                    board, self._configuration["baudrate"]
                 ):
-                    baudrate = getattr(board, self.__ssd1306_config["baudrate"])
+                    baudrate = getattr(board, self._configuration["baudrate"])
 
                 self._display_bus = displayio.FourWire(
                     spi,
@@ -73,18 +69,18 @@ class Ssd1306(BaseDisplay):
                     baudrate=baudrate,
                 )
 
-            if self.__ssd1306_config["connection"] == "i2c":
+            if self._configuration["connection"] == "i2c":
                 i2c = board.I2C()
                 pin_reset = None
                 address = 0x3C
 
-                if "pin_reset" in self.__ssd1306_config and hasattr(
-                    board, self.__ssd1306_config["pin_reset"]
+                if "pin_reset" in self._configuration and hasattr(
+                    board, self._configuration["pin_reset"]
                 ):
-                    pin_reset = getattr(board, self.__ssd1306_config["pin_reset"])
+                    pin_reset = getattr(board, self._configuration["pin_reset"])
 
-                if "address" in self.__ssd1306_config:
-                    address = int(self.__ssd1306_config["address"], 0)
+                if "address" in self._configuration:
+                    address = int(self._configuration["address"], 0)
 
                 self._display_bus = displayio.I2CDisplay(
                     i2c, device_address=address, reset=pin_reset

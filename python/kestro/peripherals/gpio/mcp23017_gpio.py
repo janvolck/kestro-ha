@@ -29,19 +29,16 @@ class Mcp23017Gpio(BaseGpio):
     ]
 
     def __init__(self, id: str, configuration: ConfigParser):
-        super().__init__()
+        super().__init__(id, configuration)
 
-        if not configuration.has_section(id):
-            raise KeyError(f"""configuration section {id} not found""")
-
-        self.__mcp_config = configuration[id]
+        self._configuration = configuration[id]
         self.__pin_to_gpio_id: dict[int, str] = {}
         self.__pin_states: dict[int, bool] = {}
         self.__pins: dict[int, DigitalInOut] = {}
 
         address = _MCP23017_ADDRESS
-        if "address" in self.__mcp_config:
-            address = int(self.__mcp_config["address"], 0)
+        if "address" in self._configuration:
+            address = int(self._configuration["address"], 0)
 
         i2c = board.I2C()
         self.mcp = MCP23017(i2c, address=address)
@@ -56,8 +53,8 @@ class Mcp23017Gpio(BaseGpio):
             gpio_state: digitalio.Pull = None
             gpio_value: bool = False
 
-            if pin_id in self.__mcp_config:
-                gpio_id = self.__mcp_config.get(pin_id)
+            if pin_id in self._configuration:
+                gpio_id = self._configuration.get(pin_id)
                 if configuration.has_section(gpio_id):
                     gpio_config = configuration[gpio_id]
 

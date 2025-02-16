@@ -1,9 +1,18 @@
 import asyncio
 
+from configparser import ConfigParser
+
 
 class BaseGpio:
 
-    def __init__(self):
+    def __init__(self, id: str, configuration: ConfigParser):
+
+        if not configuration.has_section(id):
+            raise KeyError(f"""configuration section {id} not found""")
+
+        self.id = id
+        self._configuration = configuration[id]
+
         self.outputs: dict[str, bool] = {}
         self.inputs: dict[str, bool] = {}
 

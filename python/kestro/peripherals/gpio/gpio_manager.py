@@ -2,14 +2,10 @@ from .base_gpio import BaseGpio
 from configparser import ConfigParser
 
 
-class ProxyGpio(BaseGpio):
+class GpioManager:
 
     def __init__(self):
-        super().__init__()
         self._devices: dict[str, BaseGpio] = {}
-
-    def __del__(self):
-        pass
 
     def load_config(self, config: ConfigParser):
         if config.has_option("gpio", "devices"):
@@ -23,6 +19,9 @@ class ProxyGpio(BaseGpio):
 
                         gpio_device = Mcp23017Gpio(id=device, configuration=config)
                         self.add(device, gpio_device)
+
+    def __del__(self):
+        pass
 
     def add(self, id: str, device: BaseGpio):
         self._devices[id] = device

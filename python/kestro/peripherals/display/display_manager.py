@@ -2,7 +2,7 @@ from .base_display import BaseDisplay
 from configparser import ConfigParser
 
 
-class ProxyDisplay(BaseDisplay):
+class DisplayManager():
 
     def __init__(self):
         super().__init__()
@@ -21,8 +21,8 @@ class ProxyDisplay(BaseDisplay):
                     if device_type == "ssd1306":
                         from .ssd1306_display import Ssd1306
 
-                        gpio_driver = Ssd1306(id=device, configuration=config)
-                        self.add(device, gpio_driver)
+                        display = Ssd1306(id=device, configuration=config)
+                        self.add(device, display)
 
                     elif config["display"]["type"] == "hd44780":
                         from .hd44780_8bit import HD44780Display

@@ -1,12 +1,13 @@
-from .base_distancesensor import BaseDistanceSensor
-
 import board
 import adafruit_hcsr04
 
+from .base_distancesensor import BaseDistanceSensor
+from configparser import ConfigParser
+
 
 class HcSr04(BaseDistanceSensor):
-    def __init__(self, configuration: dict):
-        super().__init__()
+    def __init__(self, id: str, configuration: ConfigParser):
+        super().__init__(id, configuration)
 
         self._hcsr04 = None
         trigger_pin = None
@@ -19,10 +20,12 @@ class HcSr04(BaseDistanceSensor):
 
         if "echo_pin" in configuration and hasattr(board, configuration["echo_pin"]):
             echo_pin = getattr(board, configuration["echo_pin"])
-            
-        if trigger_pin is not None and echo_pin is not None:
-            self._hcsr04 = adafruit_hcsr04.HCSR04(trigger_pin=trigger_pin, echo_pin=echo_pin)
-            
+
+        if trigger_pin and echo_pin:
+            self._hcsr04 = adafruit_hcsr04.HCSR04(
+                trigger_pin=trigger_pin, echo_pin=echo_pin
+            )
+
         self.distance = None
 
     async def refresh(self):
