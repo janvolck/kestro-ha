@@ -1,5 +1,6 @@
 import time
 import asyncio
+import logging
 
 from configparser import ConfigParser
 from threading import Thread
@@ -14,6 +15,9 @@ class PeripheralService:
     central place to access and manipulate the initialised peripherals"""
 
     def __init__(self):
+        self.__logger = logging.getLogger(__name__)
+        self.__logger.debug("PeripheralService created")
+
         self._properties: dict[str, any] = {}
         self._tasks = []
 
@@ -65,62 +69,110 @@ class PeripheralService:
 
     async def _refresh_network(self):
         while not self._aborted:
-            await self._network.refresh()
+            try:
+                await self._network.refresh()
 
-            addr = "No Connection"
-            if len(self._network._addresses) > 1:
-                if time.time() - self._ip_info_last_changed > 5.0:
-                    self._ip_info_last_changed = time.time()
-                    self._ip_info_index += 1
+                addr = "No Connection"
+                if len(self._network._addresses) > 1:
+                    if time.time() - self._ip_info_last_changed > 5.0:
+                        self._ip_info_last_changed = time.time()
+                        self._ip_info_index += 1
 
-                    if self._ip_info_index >= len(self._network._addresses):
-                        self._ip_info_index = 0
+                        if self._ip_info_index >= len(self._network._addresses):
+                            self._ip_info_index = 0
 
-            elif len(self._network._addresses) == 1:
-                self._ip_info_index = 0
-            else:
-                self._ip_info_index = -1
+                elif len(self._network._addresses) == 1:
+                    self._ip_info_index = 0
+                else:
+                    self._ip_info_index = -1
 
-            if self._ip_info_index < 0:
-                self.update_property("ip_addr", None)
-            else:
-                iface = list(self._network._addresses)[self._ip_info_index]
-                addr = "%s: %s" % (iface, self._network._addresses[iface])
-                self.update_property("ip_addr", addr)
+                if self._ip_info_index < 0:
+                    self.update_property("ip_addr", None)
+                else:
+                    iface = list(self._network._addresses)[self._ip_info_index]
+                    addr = "%s: %s" % (iface, self._network._addresses[iface])
+                    self.update_property("ip_addr", addr)
+
+            except RuntimeError as e:
+                self.__logger.error(
+                    "PeripheralService failed to refresh network:" + str(e)
+                )
+                pass
+            except Exception as e:
+                self.__logger.error(
+                    "PeripheralService failed to refresh network:" + str(e)
+                )
+                pass
 
             await asyncio.sleep(5.0)
 
     async def _refresh_gpio(self):
         while not self._aborted:
-            await self._gpio.refresh()
+            try:
+                await self._gpio.refresh()
 
-            status = self._gpio.status()
+                status = self._gpio.status()
 
-            if "outputs" in status and status["outputs"]:
-                for output in status["outputs"]:
-                    if "pin" in output and "value" in output:
-                        self.update_property(output["pin"], output["value"])
+                if "outputs" in status and status["outputs"]:
+                    for output in status["outputs"]:
+                        if "pin" in output and "value" in output:
+                            self.update_property(output["pin"], output["value"])
 
-            if "inputs" in status and status["inputs"]:
-                for input in status["inputs"]:
-                    if "pin" in input and "value" in input:
-                        self.update_property(input["pin"], input["value"])
+                if "inputs" in status and status["inputs"]:
+                    for input in status["inputs"]:
+                        if "pin" in input and "value" in input:
+                            self.update_property(input["pin"], input["value"])
+
+            except RuntimeError as e:
+                self.__logger.error(
+                    "PeripheralService failed to refresh GPIOs:" + str(e)
+                )
+                pass
+            except Exception as e:
+                self.__logger.error(
+                    "PeripheralService failed to refresh GPIOs:" + str(e)
+                )
+                pass
 
             await asyncio.sleep(0.1)
 
     async def _refresh_displays(self):
         while not self._aborted:
-            await self._displays.refresh(self._properties)
-            await asyncio.sleep(0.1)
+            try:
+                await self._displays.refresh(self._properties)
+
+            except RuntimeError as e:
+                self.__logger.error(
+                    "PeripheralService failed to refresh displays:" + str(e)
+                )
+                pass
+            except Exception as e:
+                self.__logger.error(
+                    "PeripheralService failed to refresh displays:" + str(e)
+                )
+                pass
+
+            await asyncio.sleep(0.5)
 
     async def _refresh_sensors(self):
         while not self._aborted:
             try:
                 await self._sensors.refresh()
 
-            except RuntimeError:
+                status = self._sensors.status()
+                if status:
+                    for key, value in status.items():
+                        self.update_property(key, value)
+
+            except RuntimeError as e:
+                self.__logger.error(
+                    "PeripheralService failed to refresh sensors:" + str(e)
+                )
                 pass
-            except Exception:
+            except Exception as e:
+                self.__logger.error(
+                    "PeripheralService failed to refresh sensors:" + str(e)
+                )
                 pass
 
-            await asyncio.sleep(2.0)
+            await asyncio.sleep(0.5)

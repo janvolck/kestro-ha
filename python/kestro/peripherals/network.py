@@ -1,4 +1,3 @@
-import asyncio
 import sdbus
 from sdbus_async.networkmanager import (
     IPv4Config,

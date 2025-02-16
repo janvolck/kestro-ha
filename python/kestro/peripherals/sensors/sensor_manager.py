@@ -42,6 +42,18 @@ class SensorManager:
     def remove(self, id: str):
         self._devices.pop(id)
 
-    async def refresh(self, properties: dict[str, any]):
+    def status(self):
+        result: dict[str, any] = {}
+
         for device in self._devices.values():
-            await device.refresh(properties)
+            device_status = device.status()
+            if device_status:
+                for key, value in device_status.items():
+                    sensor_key = f"""{device.id}::{key}"""
+                    result[sensor_key] = value
+
+        return result
+
+    async def refresh(self):
+        for device in self._devices.values():
+            await device.refresh()
