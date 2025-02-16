@@ -26,8 +26,7 @@ class Network:
         self._addresses = dict()
         self._ifaces = dict()
 
-        config = ConfigParser()
-        config.read("kestro.ini")
+    def load_config(self, config: ConfigParser):
         if "network" in config:
             for name in config.options("network"):
                 value = config.get("network", name)

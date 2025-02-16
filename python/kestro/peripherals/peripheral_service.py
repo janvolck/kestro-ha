@@ -18,19 +18,19 @@ class PeripheralService:
         self._tasks = []
 
         self._network = Network()
-        self._ip_info_index = 0
-        self._ip_info_last_changed = 0.0
-
         self._displays = DisplayManager()
         self._gpio = GpioManager()
         self._sensors = SensorManager()
 
+        self._ip_info_index = 0
+        self._ip_info_last_changed = 0.0
         self._aborted = False
         self._worker = Thread(target=self._do_work)
 
     def load_config(self, config_path: str):
         config = ConfigParser()
         config.read(config_path)
+        self._network.load_config(config)
         self._displays.load_config(config)
         self._gpio.load_config(config)
         self._sensors.load_config(config)
