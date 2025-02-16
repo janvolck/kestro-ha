@@ -1,35 +1,49 @@
 from .base_gpio import BaseGpio
+from configparser import ConfigParser
 
 
 class ProxyGpio(BaseGpio):
 
     def __init__(self):
         super().__init__()
-        self.drivers: dict[str, BaseGpio] = {}
+        self._devices: dict[str, BaseGpio] = {}
 
     def __del__(self):
         pass
 
-    def add(self, id: str, driver: BaseGpio):
-        self.drivers[id] = driver
+    def load_config(self, config: ConfigParser):
+        if config.has_option("gpio", "devices"):
+            devices = config.get("gpio", "devices")
+            for device in devices.split(" "):
+                if config.has_option(device, "type"):
+
+                    device_type = config.get(device, "type")
+                    if device_type == "mcp23017":
+                        from .mcp23017_gpio import Mcp23017Gpio
+
+                        gpio_device = Mcp23017Gpio(id=device, configuration=config)
+                        self.add(device, gpio_device)
+
+    def add(self, id: str, device: BaseGpio):
+        self._devices[id] = device
 
     def remove(self, id: str):
-        self.drivers.pop(id)
+        self._devices.pop(id)
 
     def status(self):
         result = {"inputs": None, "outputs": None}
         inputs = []
         outputs = []
 
-        for driver in self.drivers.values():
-            driver_status = driver.status()
-            if driver_status:
-                if "outputs" in driver_status and driver_status["outputs"]:
-                    for output in driver_status["outputs"]:
+        for device in self._devices.values():
+            device_status = device.status()
+            if device_status:
+                if "outputs" in device_status and device_status["outputs"]:
+                    for output in device_status["outputs"]:
                         outputs.append(output)
 
-                if "inputs" in driver_status and driver_status["inputs"]:
-                    for input in driver_status["inputs"]:
+                if "inputs" in device_status and device_status["inputs"]:
+                    for input in device_status["inputs"]:
                         inputs.append(input)
 
         if len(inputs) > 0:
@@ -42,9 +56,9 @@ class ProxyGpio(BaseGpio):
 
     def pin_status(self, pin: str):
         result = None
-        for driver in self.drivers.values():
-            if driver.has_pin(pin):
-                result = driver.pin_status(pin)
+        for device in self._devices.values():
+            if device.has_pin(pin):
+                result = device.pin_status(pin)
                 break
 
         if not result:
@@ -55,9 +69,9 @@ class ProxyGpio(BaseGpio):
     def enable(self, pin):
         pinFound = False
 
-        for driver in self.drivers.values():
-            if driver.has_pin(pin):
-                driver.enable(pin)
+        for device in self._devices.values():
+            if device.has_pin(pin):
+                device.enable(pin)
                 pinFound = True
 
         if not pinFound:
@@ -66,9 +80,9 @@ class ProxyGpio(BaseGpio):
     def disable(self, pin):
         pinFound = False
 
-        for driver in self.drivers.values():
-            if driver.has_pin(pin):
-                driver.disable(pin)
+        for device in self._devices.values():
+            if device.has_pin(pin):
+                device.disable(pin)
                 pinFound = True
 
         if not pinFound:
@@ -77,14 +91,14 @@ class ProxyGpio(BaseGpio):
     def toggle(self, pin):
         pinFound = False
 
-        for driver in self.drivers.values():
-            if driver.has_pin(pin):
-                driver.toggle(pin)
+        for device in self._devices.values():
+            if device.has_pin(pin):
+                device.toggle(pin)
                 pinFound = True
 
         if not pinFound:
             raise ValueError(f"""pin {pin} not found""")
 
     async def refresh(self):
-        for driver in self.drivers.values():
-            await driver.refresh()
+        for device in self._devices.values():
+            await device.refresh()

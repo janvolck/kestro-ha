@@ -7,6 +7,7 @@ from .peripherals.peripheral_service import PeripheralService
 
 def create_app():
     peripheral_service = PeripheralService()
+    peripheral_service.load_config("kestro.ini")
     peripheral_service.start()
 
     webserver = WebServer(__name__)

@@ -37,7 +37,7 @@ class Mcp23017Gpio(BaseGpio):
         self.__mcp_config = configuration[id]
         self.__pin_to_gpio_id: dict[int, str] = {}
         self.__pin_states: dict[int, bool] = {}
-        self.__pins: dict[int, digitalio.DigitalInOut] = {}
+        self.__pins: dict[int, DigitalInOut] = {}
 
         address = _MCP23017_ADDRESS
         if "address" in self.__mcp_config:

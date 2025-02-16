@@ -1,9 +1,6 @@
 class BaseDisplay:
     def __init__(self):
-        self._properties = {}
+        pass
 
-    def update_property(self, key: str, value: any):
-        self._properties[key] = value
-
-    def refresh(self):
+    async def refresh(self, properties: dict[str, any]):
         pass

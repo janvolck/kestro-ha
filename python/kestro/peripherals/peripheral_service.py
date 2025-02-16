@@ -1,10 +1,11 @@
 import time
 import asyncio
 
+from configparser import ConfigParser
 from threading import Thread
 from .network import Network
-from .display import display
-from .gpio import gpio
+from .display.proxy_display import ProxyDisplay
+from .gpio.proxy_gpio import ProxyGpio
 from .sensors import power_sensor, temperature_sensor, humidity_sensor, distance_sensor
 
 
@@ -13,23 +14,39 @@ class PeripheralService:
     central place to access and manipulate the initialised peripherals"""
 
     def __init__(self):
-        self.network = Network()
-        self.ip_info_index = 0
-        self.ip_info_last_changed = 0.0
-        self._aborted = display is None
+        self._properties: dict[str, any] = {}
+        self._tasks = []
+
+        self._network = Network()
+        self._ip_info_index = 0
+        self._ip_info_last_changed = 0.0
+
+        self._gpio = ProxyGpio()
+        self._displays = ProxyDisplay()
+
+        self._aborted = False
         self._worker = Thread(target=self._do_work)
 
-    def abort(self):
+    def load_config(self, config_path: str):
+        config = ConfigParser()
+        config.read(config_path)
+        self._gpio.load_config(config)
+        self._displays.load_config(config)
+
+    async def abort(self):
         self._aborted = True
 
+    def update_property(self, key: str, value: any):
+        self._properties[key] = value
+
     def display(self):
-        return display
+        return self._displays
 
     def distance_sensor(self):
         return distance_sensor
 
     def gpio(self):
-        return gpio
+        return self._gpio
 
     def humidity_sensor(self):
         return humidity_sensor
@@ -45,59 +62,80 @@ class PeripheralService:
             self._worker.start()
 
     def _do_work(self):
-        import time
+        loop = asyncio.new_event_loop()
+        self._tasks.append(loop.create_task(self._refresh_network()))
+        self._tasks.append(loop.create_task(self._refresh_gpio()))
+        self._tasks.append(loop.create_task(self._refresh()))
+        self._tasks.append(loop.create_task(self._refresh_display()))
+        loop.run_until_complete(asyncio.wait(self._tasks))
+        loop.close
 
+    async def _refresh_network(self):
         while not self._aborted:
-            asyncio.run(self._refresh())
-            time.sleep(0.1)
-
-    async def _refresh(self):
-        try:
-            await self.network.refresh()
+            await self._network.refresh()
 
             addr = "No Connection"
-            if len(self.network.addresses) > 1:
-                if time.time() - self.ip_info_last_changed > 5.0:
-                    self.ip_info_last_changed = time.time()
-                    self.ip_info_index += 1
+            if len(self._network._addresses) > 1:
+                if time.time() - self._ip_info_last_changed > 5.0:
+                    self._ip_info_last_changed = time.time()
+                    self._ip_info_index += 1
 
-                    if self.ip_info_index >= len(self.network.addresses):
-                        self.ip_info_index = 0
+                    if self._ip_info_index >= len(self._network._addresses):
+                        self._ip_info_index = 0
 
-            elif len(self.network.addresses) == 1:
-                self.ip_info_index = 0
+            elif len(self._network._addresses) == 1:
+                self._ip_info_index = 0
             else:
-                self.ip_info_index = -1
+                self._ip_info_index = -1
 
-            if self.ip_info_index < 0:
-                display.update_property("ip_addr", None)
+            if self._ip_info_index < 0:
+                self.update_property("ip_addr", None)
             else:
-                iface = list(self.network.addresses)[self.ip_info_index]
-                addr = "%s: %s" % (iface, self.network.addresses[iface])
-                display.update_property("ip_addr", addr)
+                iface = list(self._network._addresses)[self._ip_info_index]
+                addr = "%s: %s" % (iface, self._network._addresses[iface])
+                self.update_property("ip_addr", addr)
 
-            if distance_sensor:
-                await distance_sensor.refresh()
-                display.update_property("distance", distance_sensor.distance)
+            await asyncio.sleep(5.0)
 
-            if humidity_sensor:
-                await humidity_sensor.refresh()
-                display.update_property("humidity", humidity_sensor.humidity)
+    async def _refresh_gpio(self):
+        while not self._aborted:
+            await self._gpio.refresh()
+            for input, value in self._gpio.inputs:
+                self.update_property(input, value)
 
-            if power_sensor:
-                await power_sensor.refresh()
-                display.update_property("voltage", power_sensor.voltage)
-                display.update_property("current", power_sensor.current)
+            for output, value in self._gpio.outputs:
+                self.update_property(output, value)
 
-            if temperature_sensor:
-                await temperature_sensor.refresh()
-                display.update_property("temperature", temperature_sensor.temperature)
+            await asyncio.sleep(0.1)
 
-            if gpio:
-                await gpio.refresh()
+    async def _refresh_display(self):
+        while not self._aborted:
+            await self._displays.refresh(self._properties)
+            await asyncio.sleep(0.1)
 
-            display.refresh()
-        except RuntimeError:
-            pass
-        except Exception:
-            pass
+    async def _refresh(self):
+        while not self._aborted:
+            try:
+                if distance_sensor:
+                    await distance_sensor.refresh()
+                    self.update_property("distance", distance_sensor.distance)
+
+                if humidity_sensor:
+                    await humidity_sensor.refresh()
+                    self.update_property("humidity", humidity_sensor.humidity)
+
+                if power_sensor:
+                    await power_sensor.refresh()
+                    self.update_property("voltage", power_sensor.voltage)
+                    self.update_property("current", power_sensor.current)
+
+                if temperature_sensor:
+                    await temperature_sensor.refresh()
+                    self.update_property("temperature", temperature_sensor.temperature)
+
+            except RuntimeError:
+                pass
+            except Exception:
+                pass
+
+            await asyncio.sleep(0.1)

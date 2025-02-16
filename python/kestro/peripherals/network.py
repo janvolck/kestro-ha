@@ -8,7 +8,7 @@ from sdbus_async.networkmanager import (
 )
 import logging
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 from configparser import ConfigParser
 
 
@@ -16,31 +16,32 @@ NetworkManagerAddressData = List[Dict[str, Tuple[str, Any]]]
 
 
 class Network:
+
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.logger.debug("Network instance created")
 
-        self.adress = None
-        self.addresses = dict()
-        self.ifaces = dict()
+        self._nm = None
+        self._address = None
+        self._addresses = dict()
+        self._ifaces = dict()
 
         config = ConfigParser()
         config.read("kestro.ini")
         if "network" in config:
             for name in config.options("network"):
                 value = config.get("network", name)
-                self.ifaces[name] = value
+                self._ifaces[name] = value
 
     async def refresh(self):
         address = None
         addresses = dict()
 
-        for name in self.ifaces.keys():
+        for name in self._ifaces.keys():
             try:
-                iface = self.ifaces[name]
+                iface = self._ifaces[name]
                 nm = NetworkManager(sdbus.sd_bus_open_system())
                 device_path = await nm.get_device_by_ip_iface(iface)
-
                 if device_path:
                     generic_device = NetworkDeviceGeneric(
                         device_path, sdbus.sd_bus_open_system()
@@ -54,7 +55,9 @@ class Network:
                     ip4_conf = IPv4Config(
                         device_ip4_conf_path, sdbus.sd_bus_open_system()
                     )
-                    address_data: NetworkManagerAddressData = await ip4_conf.address_data
+                    address_data: NetworkManagerAddressData = (
+                        await ip4_conf.address_data
+                    )
                     for inetaddr in address_data:
                         self.logger.debug(
                             "Network address %s on iface %s"
@@ -65,13 +68,15 @@ class Network:
                             address = inetaddr["address"][1]
 
                         addresses[name] = inetaddr["address"][1]
-            except NetworkManagerBaseError:
+            except NetworkManagerBaseError as e:
+                self.logger.error("Failed to get interface " + e)
                 pass
             except Exception as e:
+                self.logger.error("Failed to get interface " + e)
                 pass
 
         if address is None:
             address = "No Connection"
 
-        self.address = address
-        self.addresses = addresses
+        self._address = address
+        self._addresses = addresses
