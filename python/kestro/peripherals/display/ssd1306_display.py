@@ -17,7 +17,6 @@ class Ssd1306(BaseDisplay):
         self._brightness = 1.0
         self._display_bus = None
         self._display = None
-        self._text_format = ""
 
         if "width" in self._configuration:
             self._width = int(self._configuration["width"])
@@ -107,13 +106,7 @@ class Ssd1306(BaseDisplay):
         root.append(background_grid)
 
         # Draw a label
-        text = None
-        try:
-            text = self._text_format.format(property=properties)
-        except Exception as e:
-            text = "Format Error"
-            pass
-
+        text = self.formatDisplayText(properties)
         text_area = label.Label(terminalio.FONT, text=text, color=0xFFFFFF, x=0, y=12)
         root.append(text_area)
         self._display.root_group = root
