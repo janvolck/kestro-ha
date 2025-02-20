@@ -20,7 +20,7 @@ class Network:
         self.logger = logging.getLogger(__name__)
         self.logger.debug("Network instance created")
 
-        self._nm = None
+        self._dbus = sdbus.sd_bus_open_system()
         self._address = None
         self._addresses = dict()
         self._ifaces = dict()
@@ -36,23 +36,20 @@ class Network:
         addresses = dict()
 
         for name in self._ifaces.keys():
+            nm = None
             try:
                 iface = self._ifaces[name]
-                nm = NetworkManager(sdbus.sd_bus_open_system())
+                nm = NetworkManager(self._dbus)
                 device_path = await nm.get_device_by_ip_iface(iface)
                 if device_path:
-                    generic_device = NetworkDeviceGeneric(
-                        device_path, sdbus.sd_bus_open_system()
-                    )
+                    generic_device = NetworkDeviceGeneric(device_path, self._dbus)
                     device_ip4_conf_path: str = await generic_device.ip4_config
                     if device_ip4_conf_path == "/":
                         continue
                     if not generic_device.managed:
                         continue
 
-                    ip4_conf = IPv4Config(
-                        device_ip4_conf_path, sdbus.sd_bus_open_system()
-                    )
+                    ip4_conf = IPv4Config(device_ip4_conf_path, self._dbus)
                     address_data: NetworkManagerAddressData = (
                         await ip4_conf.address_data
                     )
@@ -66,11 +63,12 @@ class Network:
                             address = inetaddr["address"][1]
 
                         addresses[name] = inetaddr["address"][1]
+
             except NetworkManagerBaseError as e:
-                self.logger.error("Failed to get interface " + e)
+                self.logger.error("Failed to get interface " + str(e))
                 pass
             except Exception as e:
-                self.logger.error("Failed to get interface " + e)
+                self.logger.error("Failed to get interface " + str(e))
                 pass
 
         if address is None:
