@@ -1,9 +1,11 @@
 import board
-import displayio
 import terminalio
+import displayio
 import adafruit_displayio_ssd1306
 
 from .base_display import BaseDisplay
+from fourwire import FourWire
+from i2cdisplaybus import I2CDisplayBus
 from adafruit_display_text import label
 from configparser import ConfigParser
 
@@ -11,6 +13,8 @@ from configparser import ConfigParser
 class Ssd1306(BaseDisplay):
     def __init__(self, id: str, configuration: ConfigParser):
         super().__init__(id, configuration)
+
+        displayio.release_displays()
 
         self._width = 128
         self._height = 64
@@ -60,7 +64,7 @@ class Ssd1306(BaseDisplay):
                 ):
                     baudrate = getattr(board, self._configuration["baudrate"])
 
-                self._display_bus = displayio.FourWire(
+                self._display_bus = FourWire(
                     spi,
                     command=pin_dc,
                     chip_select=pin_cs,
@@ -81,7 +85,7 @@ class Ssd1306(BaseDisplay):
                 if "address" in self._configuration:
                     address = int(self._configuration["address"], 0)
 
-                self._display_bus = displayio.I2CDisplay(
+                self._display_bus = I2CDisplayBus(
                     i2c, device_address=address, reset=pin_reset
                 )
 
@@ -90,10 +94,13 @@ class Ssd1306(BaseDisplay):
             self._display = adafruit_displayio_ssd1306.SSD1306(
                 self._display_bus, width=self._width, height=self._height
             )
-            self._display.auto_refresh = False
             self._display.brightness = self._brightness
+            self._display.auto_refresh = False
+            displayio._stop_background()
+
 
     async def refresh(self, properties: dict[str, any]):
+
         root = displayio.Group()
 
         background = displayio.Bitmap(self._width, self._height, 1)

@@ -2,7 +2,6 @@ import time
 import asyncio
 import logging
 import paho.mqtt.client as mqtt
-import socket
 
 from configparser import ConfigParser
 from threading import Thread
@@ -258,7 +257,7 @@ class PeripheralService:
                 )
                 pass
 
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1.0)
 
     async def _refresh_displays(self):
         while not self._aborted:

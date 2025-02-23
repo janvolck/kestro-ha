@@ -3,14 +3,14 @@
 GET http://{{host}}:{{port}}/api/kestro/peripherals/gpios
 
 ### GET GPIO status
-GET http://{{host}}:{{port}}/api/kestro/peripherals/gpios/button1
+GET http://{{host}}:{{port}}/api/kestro/peripherals/gpios/odroidc4.io.button1
 
 ### Set GPIO on
-POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/led1/on
+POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/odroidc4.io.led1/on
 
 ### Set GPIO off
-POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/led1/off
+POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/odroidc4.io.led1/off
 
 
 ### Toggle GPIO
-POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/led1/toggle
+POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/odroidc4.io.led1/toggle
