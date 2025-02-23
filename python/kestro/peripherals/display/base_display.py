@@ -13,7 +13,13 @@ class BaseDisplay:
         self._text_format = "N/A"
 
     def formatDisplayText(self, properties: dict[str, any]):
-        return chevron.render(template=self._text_format, data=properties)
+        data: dict[str,any] = {}
+        
+        for key,value in properties.items():
+            chevron_key = key.replace(".","_")
+            data[chevron_key] = value
+        
+        return chevron.render(template=self._text_format, data=data)
 
     async def refresh(self, properties: dict[str, any]):
         pass

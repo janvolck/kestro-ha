@@ -17,28 +17,47 @@ NetworkManagerAddressData = List[Dict[str, Tuple[str, Any]]]
 class Network:
 
     def __init__(self):
-        self.logger = logging.getLogger(__name__)
-        self.logger.debug("Network instance created")
+        self.__log = logging.getLogger(__name__)
+        self.__log.debug("Network instance created")
 
         self._dbus = sdbus.sd_bus_open_system()
         self._address = None
         self._addresses = dict()
-        self._ifaces = dict()
+        self._ifaces: dict[str, str] = {}
+        self._iface_names: dict[str, str] = {}
+
+    def __del__(self):
+        if self._dbus:
+            self._dbus.close()
+
+        self.__log.debug("Network instance destroyed")
 
     def load_config(self, config: ConfigParser):
-        if "network" in config:
-            for name in config.options("network"):
-                value = config.get("network", name)
-                self._ifaces[name] = value
+        if config.has_option("network", "interfaces"):
+            interfaces = config.get("network", "interfaces")
+            for interface in interfaces.split(" "):
+                iface = None
+                name = None
+
+                if config.has_option(interface, "interface"):
+                    iface = config.get(interface, "interface")
+                    name = config.get(interface, "interface")
+
+                if config.has_option(interface, "name"):
+                    name = config.get(interface, "name")
+
+            if iface:
+                self._ifaces[interface] = iface
+
+            if name:
+                self._iface_names[interface] = name
 
     async def refresh(self):
         address = None
-        addresses = dict()
+        addresses = []
 
-        for name in self._ifaces.keys():
-            nm = None
+        for key, iface in self._ifaces.items():
             try:
-                iface = self._ifaces[name]
                 nm = NetworkManager(self._dbus)
                 device_path = await nm.get_device_by_ip_iface(iface)
                 if device_path:
@@ -54,21 +73,31 @@ class Network:
                         await ip4_conf.address_data
                     )
                     for inetaddr in address_data:
-                        self.logger.debug(
-                            "Network address %s on iface %s"
-                            % (inetaddr["address"][1], iface)
+                        iface_address = inetaddr["address"][1]
+                        self.__log.debug(
+                            f"Network address {iface_address} on iface {iface}"
                         )
 
-                        if not address:
-                            address = inetaddr["address"][1]
+                        iface_name = iface
+                        if key in self._iface_names:
+                            iface_name = self._iface_names[key]
 
-                        addresses[name] = inetaddr["address"][1]
+                        address_info = {
+                            "id": key,
+                            "interface": iface,
+                            "name": iface_name,
+                            "address": iface_address,
+                        }
+                        addresses.append(address_info)
+
+                        if not address:
+                            address = iface_address
 
             except NetworkManagerBaseError as e:
-                self.logger.error("Failed to get interface " + str(e))
+                self.__log.error("Failed to get interface " + str(e))
                 pass
             except Exception as e:
-                self.logger.error("Failed to get interface " + str(e))
+                self.__log.error("Failed to get interface " + str(e))
                 pass
 
         if address is None:

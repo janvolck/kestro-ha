@@ -17,10 +17,11 @@ class PeripheralService:
     central place to access and manipulate the initialised peripherals"""
 
     def __init__(self):
-        self.__logger = logging.getLogger(__name__)
-        self.__logger.debug("PeripheralService created")
+        self.__log = logging.getLogger(__name__)
+        self.__log.debug("PeripheralService created")
 
-        self.__local_properties: dict[str, any] = {}
+        self._local_properties: dict[str, any] = {}
+        self._display_properties: dict[str, str] = {}
         self._tasks = []
 
         self._network = Network()
@@ -28,9 +29,11 @@ class PeripheralService:
         self._gpio = GpioManager()
         self._sensors = SensorManager()
         self._mqtt = None
+        self._mqtt_propertytopics: dict[str, str] = {}
+        self._mqtt_topicproperties: dict[str, str] = {}
 
-        self._ip_info_index = 0
-        self._ip_info_last_changed = 0.0
+        self._network_addresses_index = 0
+        self._network_address_last_rotate = None
         self._aborted = False
         self._worker = Thread(target=self._do_work)
 
@@ -38,6 +41,7 @@ class PeripheralService:
         config = ConfigParser()
         config.read(config_path)
         self._mqtt_load_config(config)
+        self._mqtt_load_topic_config(config)
         self._network.load_config(config)
         self._displays.load_config(config)
         self._gpio.load_config(config)
@@ -45,19 +49,6 @@ class PeripheralService:
 
     async def abort(self):
         self._aborted = True
-
-    def update_local_property(self, key: str, value: any):
-        property_changed = False
-
-        if key in self.__local_properties:
-            if self.__local_properties[key] != value:
-                property_changed = True
-        else:
-            property_changed = True
-
-        if property_changed:
-            self.__local_properties[key] = value
-            self._mqtt_publish(key, value)
 
     def displays(self):
         return self._displays
@@ -105,74 +96,115 @@ class PeripheralService:
             self._mqtt.on_disconnect = self._mqtt_on_disconnect
             self._mqtt.on_message = self._mqtt_on_message
             self._mqtt.connect_async(mqtt_host, mqtt_port)
-            # TODO : decorate connect and message methods
-            # publish local properties to mqtt when they change
-            # subscribe to sensors and add them to properties that
-            # will be sent to display on refresh
-            # this way we can display status of other sensors
-            # in the network on a specific display
+
+    def _mqtt_load_topic_config(self, config: ConfigParser):
+        if config.has_section("mqtt.propertytopics"):
+            for key, value in config.items("mqtt.propertytopics"):
+                self._mqtt_propertytopics[key] = value
+                self._mqtt_topicproperties[value] = key
 
     def _mqtt_on_connect(
         self, client: mqtt.Client, userdata, flags, reason_code, properties
     ):
-        print(f"Connected with result code {reason_code}")
-        client.subscribe("kestro/#")
-        for key, value in self.__local_properties.items():
+        self.__log.debug(f"Connected with result code {reason_code}")
+
+        for topic in self._mqtt_topicproperties.keys():
+            self._mqtt.subscribe(topic)
+
+        for key, value in self._local_properties.items():
             self._mqtt_publish(key, value)
 
-    def _mqtt_on_connect_fail(self, client, userdata):
-        print(f"Connect failed")
+    def _mqtt_on_connect_fail(self, client: mqtt.Client, userdata):
+        self.__log.debug(f"Connect failed")
 
     def _mqtt_on_disconnect(
-        self, client, userdata, disconnect_flags, reason_code, properties
+        self, client: mqtt.Client, userdata, disconnect_flags, reason_code, properties
     ):
-        print(f"Disconnected with result code {reason_code}")
+        self.__log.debug(f"Disconnected with result code {reason_code}")
 
-    def _mqtt_on_message(self, client, userdata, message):
-        print(f"New message received")
+    def _mqtt_on_message(
+        self, client: mqtt.Client, userdata, message: mqtt.MQTTMessage
+    ):
+        self.__log.debug(f"New message received {message.topic}:{message.payload}")
+
+        key = self._topic_to_key(message.topic)
+        if key:
+            self._update_display_property(key, message.topic)
 
     def _mqtt_publish(self, key: str, value: any):
         if self._mqtt and len(key) > 0:
             topic = self._key_to_topic(key)
-            self._mqtt.publish(topic, value)
+            if topic:
+                self._mqtt.publish(topic, value)
+
+    def _update_local_property(self, key: str, value: any):
+        property_changed = False
+        self._update_display_property(key, value)
+
+        if key in self._local_properties:
+            if self._local_properties[key] != value:
+                property_changed = True
+        else:
+            property_changed = True
+
+        if property_changed:
+            self._local_properties[key] = value
+            self._mqtt_publish(key, value)
+
+    def _update_display_property(self, key: str, value: any):
+        self._display_properties[key] = value
 
     def _key_to_topic(self, key: str):
-        topic = f"""kestro/{key}"""
-        return topic
+        if key in self._mqtt_propertytopics:
+            return self._mqtt_propertytopics[key]
+
+        return None
+
+    def _topic_to_key(self, topic: str):
+        if topic in self._mqtt_topicproperties:
+            return self._mqtt_topicproperties[topic]
+
+        return None
 
     async def _refresh_network(self):
         while not self._aborted:
             try:
                 await self._network.refresh()
 
-                addr = "No Connection"
-                if len(self._network._addresses) > 1:
-                    if time.time() - self._ip_info_last_changed > 5.0:
-                        self._ip_info_last_changed = time.time()
-                        self._ip_info_index += 1
+                addresses = self._network._addresses
+                if len(addresses) <= 0:
+                    self._network_address_last_rotate = None
+                    self._network_addresses_index = -1
+                    self._update_local_property("local_address", "No Connection")
+                elif not self._network_address_last_rotate:
+                    self._network_address_last_rotate = time.time()
+                    self._network_addresses_index = 0
+                elif time.time() - self._network_address_last_rotate > 5.0:
+                    self._network_address_last_rotate = time.time()
+                    self._network_addresses_index += 1
 
-                        if self._ip_info_index >= len(self._network._addresses):
-                            self._ip_info_index = 0
+                if self._network_addresses_index >= len(addresses):
+                    self._network_addresses_index = 0
 
-                elif len(self._network._addresses) == 1:
-                    self._ip_info_index = 0
-                else:
-                    self._ip_info_index = -1
+                for i in range(len(addresses)):
+                    address = addresses[i]
+                    key = address["id"]
+                    name = address["name"]
+                    address = address["address"]
 
-                if self._ip_info_index < 0:
-                    self.update_local_property("ip_addr", None)
-                else:
-                    iface = list(self._network._addresses)[self._ip_info_index]
-                    addr = "%s: %s" % (iface, self._network._addresses[iface])
-                    self.update_local_property("ip_addr", addr)
+                    self._update_local_property(key, address)
+
+                    if i == self._network_addresses_index:
+                        addr = f"{name}: {address}"
+                        self._update_local_property("local_address", addr)
 
             except RuntimeError as e:
-                self.__logger.error(
+                self.__log.error(
                     "PeripheralService failed to refresh network:" + str(e)
                 )
                 pass
             except Exception as e:
-                self.__logger.error(
+                self.__log.error(
                     "PeripheralService failed to refresh network:" + str(e)
                 )
                 pass
@@ -189,43 +221,21 @@ class PeripheralService:
                 if "outputs" in status and status["outputs"]:
                     for output in status["outputs"]:
                         if "pin" in output and "value" in output:
-                            self.update_local_property(output["pin"], output["value"])
+                            self._update_local_property(output["pin"], output["value"])
 
                 if "inputs" in status and status["inputs"]:
                     for input in status["inputs"]:
                         if "pin" in input and "value" in input:
-                            self.update_local_property(input["pin"], input["value"])
+                            self._update_local_property(input["pin"], input["value"])
 
             except RuntimeError as e:
-                self.__logger.error(
-                    "PeripheralService failed to refresh GPIOs:" + str(e)
-                )
+                self.__log.error("PeripheralService failed to refresh GPIOs:" + str(e))
                 pass
             except Exception as e:
-                self.__logger.error(
-                    "PeripheralService failed to refresh GPIOs:" + str(e)
-                )
+                self.__log.error("PeripheralService failed to refresh GPIOs:" + str(e))
                 pass
 
             await asyncio.sleep(0.1)
-
-    async def _refresh_displays(self):
-        while not self._aborted:
-            try:
-                await self._displays.refresh(self.__local_properties)
-
-            except RuntimeError as e:
-                self.__logger.error(
-                    "PeripheralService failed to refresh displays:" + str(e)
-                )
-                pass
-            except Exception as e:
-                self.__logger.error(
-                    "PeripheralService failed to refresh displays:" + str(e)
-                )
-                pass
-
-            await asyncio.sleep(0.5)
 
     async def _refresh_sensors(self):
         while not self._aborted:
@@ -235,16 +245,34 @@ class PeripheralService:
                 status = self._sensors.status()
                 if status:
                     for key, value in status.items():
-                        self.update_local_property(key, value)
+                        self._update_local_property(key, value)
 
             except RuntimeError as e:
-                self.__logger.error(
+                self.__log.error(
                     "PeripheralService failed to refresh sensors:" + str(e)
                 )
                 pass
             except Exception as e:
-                self.__logger.error(
+                self.__log.error(
                     "PeripheralService failed to refresh sensors:" + str(e)
+                )
+                pass
+
+            await asyncio.sleep(0.5)
+
+    async def _refresh_displays(self):
+        while not self._aborted:
+            try:
+                await self._displays.refresh(self._display_properties)
+
+            except RuntimeError as e:
+                self.__log.error(
+                    "PeripheralService failed to refresh displays:" + str(e)
+                )
+                pass
+            except Exception as e:
+                self.__log.error(
+                    "PeripheralService failed to refresh displays:" + str(e)
                 )
                 pass
 
