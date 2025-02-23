@@ -59,8 +59,10 @@ class PeripheralService:
         return self._sensors
 
     def start(self):
-        if not self._aborted:
-            self._mqtt.loop_start()
+        if not self._aborted: 
+            if self._mqtt:
+                self._mqtt.loop_start()
+            
             self._worker.start()
 
     def _do_work(self):
