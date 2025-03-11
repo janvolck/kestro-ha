@@ -10,6 +10,12 @@ from adafruit_display_text import label
 from configparser import ConfigParser
 
 
+def noop():
+    pass
+
+displayio._start_background = noop
+
+
 class Ssd1306(BaseDisplay):
     def __init__(self, id: str, configuration: ConfigParser):
         super().__init__(id, configuration)
@@ -96,7 +102,6 @@ class Ssd1306(BaseDisplay):
             )
             self._display.brightness = self._brightness
             self._display.auto_refresh = False
-            displayio._stop_background()
 
 
     async def refresh(self, properties: dict[str, any]):

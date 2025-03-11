@@ -1,8 +1,12 @@
 {
     "rest-client.environmentVariables": {
-        "odroid": {
+        "odroid-debug": {
             "host": "192.168.100.54",
             "port": "5000"
+        },
+        "odroid-prod": {
+            "host": "192.168.100.54",
+            "port": "8080"
         }
     }
 }
