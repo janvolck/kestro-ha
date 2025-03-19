@@ -16,7 +16,7 @@ def noop():
 displayio._start_background = noop
 
 
-class Ssd1306(BaseDisplay):
+class Ssd1306Display(BaseDisplay):
     def __init__(self, id: str, configuration: ConfigParser):
         super().__init__(id, configuration)
 

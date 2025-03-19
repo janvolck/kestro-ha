@@ -2,7 +2,7 @@ from .base_display import BaseDisplay
 from configparser import ConfigParser
 
 
-class DisplayManager():
+class DisplayManager:
 
     def __init__(self):
         super().__init__()
@@ -19,19 +19,16 @@ class DisplayManager():
 
                     device_type = config.get(device, "type")
                     if device_type == "ssd1306":
-                        from .ssd1306_display import Ssd1306
+                        from .ssd1306_display import Ssd1306Display
 
-                        display = Ssd1306(id=device, configuration=config)
+                        display = Ssd1306Display(id=device, configuration=config)
                         self.add(device, display)
 
-                    elif config["display"]["type"] == "hd44780":
-                        from .hd44780_8bit import HD44780Display
+                    elif device_type == "hd44780":
+                        from .hd44780_display import Hd44780Display
 
-                        if "host" in config["display"]:
-                            display_host = config["display"]["host"]
-                            display = HD44780Display(host="rpi4-k8s-master")
-                        else:
-                            display = HD44780Display()
+                        display = Hd44780Display(id=device, configuration=config)
+                        self.add(device, display)
 
     def add(self, id: str, driver: BaseDisplay):
         self._devices[id] = driver
