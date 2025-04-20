@@ -26,6 +26,19 @@
       }]
     },
     {
+      "name": "kestro-iot@rpi4-mancave (Attach)",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "rpi4-mancave.kestro.home",
+        "port": 5678
+      },
+      "pathMappings": [{
+        "localRoot": "${workspaceFolder}",
+        "remoteRoot": "/mnt/host/janvolck/kestro-iot"
+      }]
+    },
+    {
       "name": "Kestro Home Assistant Angular",
       "type": "chrome",
       "request": "launch",

@@ -14,3 +14,11 @@ POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/odroidc4.io.led1/off
 
 ### Toggle GPIO
 POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/odroidc4.io.led1/toggle
+
+
+
+### Toggle GPIO
+POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/mancave.light.main/toggle
+
+### Set GPIO on
+POST http://{{host}}:{{port}}/api/kestro/peripherals/gpios/mancave.light.main/on

@@ -19,6 +19,11 @@ class GpioManager:
 
                         gpio_device = Mcp23017Gpio(id=device, configuration=config)
                         self.add(device, gpio_device)
+                    elif device_type == "board":
+                        from .board_gpio import BoardGpio
+
+                        gpio_device = BoardGpio(id=device, configuration=config)
+                        self.add(device, gpio_device)
 
     def __del__(self):
         pass

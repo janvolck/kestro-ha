@@ -2,7 +2,7 @@
  /kestro/sensors/<name>/output/value
 
 
-all changes will be send to mqtt broker
+all changes will be sent to mqtt broker
 the peripheral service will also listen to all
 /kestro/sensors/# and update a local properties map with the information
 

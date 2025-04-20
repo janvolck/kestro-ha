@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # DEV system preparation
-sudo apt install -y i2c-tools vim libfreetype6-dev libjpeg8-dev libopenjp2-7 libsdl1.2-dev \
+sudo apt install -y i2c-tools vim libfreetype6-dev libjpeg-dev libopenjp2-7 libsdl1.2-dev \
                    python3-dev python3-pip python3-venv build-essential \
                    apt-transport-https ca-certificates curl gnupg lsb-release nfs-common \
                    libgpiod2 libgpiod-dev git network-manager

@@ -3,6 +3,7 @@ Description=Kestro IoT Services
 
 [Service]
 Type=simple
+WorkingDirectory=/var/run/kestro-iot
 ExecStartPre=. /home/kestroadmin/kestro/bin/activate
 ExecStart=/usr/bin/waitress-serve --call kestro_iot:create_app
 RestartSec=5s
