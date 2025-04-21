@@ -117,7 +117,7 @@ class Mcp23017Gpio(BaseGpio):
 
         return result
 
-    def pin_status(self, pin: str):
+    def get_pin_state(self, pin: str):
         result = None
         if pin in self.__pin_states:
             result = {"pin": pin, "value": not (self.__pin_states[pin])}
@@ -126,15 +126,9 @@ class Mcp23017Gpio(BaseGpio):
 
         return result
 
-    def enable(self, pin):
+    def set_pin_state(self, pin: str, status: bool):
         if pin in self.outputs and pin in self.__pins:
-            self.__pins[pin].value = True
-        else:
-            raise ValueError(f"""pin {pin} not found""")
-
-    def disable(self, pin):
-        if pin in self.outputs and pin in self.__pins:
-            self.__pins[pin].value = False
+            self.__pins[pin].value = status
         else:
             raise ValueError(f"""pin {pin} not found""")
 

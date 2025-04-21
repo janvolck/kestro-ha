@@ -28,8 +28,10 @@ class PeripheralService:
         self._gpio = GpioManager()
         self._sensors = SensorManager()
         self._mqtt = None
-        self._mqtt_propertytopics: dict[str, str] = {}
-        self._mqtt_topicproperties: dict[str, str] = {}
+        self._mqtt_state_to_topic: dict[str, str] = {}
+        self._mqtt_topic_to_state: dict[str, str] = {}
+        self._mqtt_switch_to_topic: dict[str, str] = {}
+        self._mqtt_topic_to_switch: dict[str, str] = {}
 
         self._network_addresses_index = 0
         self._network_address_last_rotate = None
@@ -37,6 +39,9 @@ class PeripheralService:
         self._worker = Thread(target=self._do_work)
 
     def load_config(self, config_path: str):
+
+        self.__log.debug(f"PeripheralService loading config from {config_path}")
+
         config = ConfigParser()
         config.read(config_path)
         self._mqtt_load_config(config)
@@ -59,10 +64,10 @@ class PeripheralService:
         return self._sensors
 
     def start(self):
-        if not self._aborted: 
+        if not self._aborted:
             if self._mqtt:
                 self._mqtt.loop_start()
-            
+
             self._worker.start()
 
     def _do_work(self):
@@ -99,21 +104,29 @@ class PeripheralService:
             self._mqtt.connect_async(mqtt_host, mqtt_port)
 
     def _mqtt_load_topic_config(self, config: ConfigParser):
-        if config.has_section("mqtt.propertytopics"):
-            for key, value in config.items("mqtt.propertytopics"):
-                self._mqtt_propertytopics[key] = value
-                self._mqtt_topicproperties[value] = key
+        if config.has_section("mqtt.states"):
+            for key, value in config.items("mqtt.states"):
+                self._mqtt_state_to_topic[key] = value
+                self._mqtt_topic_to_state[value] = key
+
+        if config.has_section("mqtt.switches"):
+            for key, value in config.items("mqtt.switches"):
+                self._mqtt_switch_to_topic[key] = value
+                self._mqtt_topic_to_switch[value] = key
 
     def _mqtt_on_connect(
         self, client: mqtt.Client, userdata, flags, reason_code, properties
     ):
         self.__log.debug(f"Connected with result code {reason_code}")
 
-        for topic in self._mqtt_topicproperties.keys():
+        for topic in self._mqtt_topic_to_state.keys():
+            self._mqtt.subscribe(topic)
+
+        for topic in self._mqtt_topic_to_switch.keys():
             self._mqtt.subscribe(topic)
 
         for key, value in self._local_properties.items():
-            self._mqtt_publish(key, value)
+            self._mqtt_publish_property(key, value)
 
     def _mqtt_on_connect_fail(self, client: mqtt.Client, userdata):
         self.__log.debug(f"Connect failed")
@@ -128,11 +141,17 @@ class PeripheralService:
     ):
         self.__log.debug(f"New message received {message.topic}:{message.payload}")
 
-        key = self._topic_to_key(message.topic)
-        if key:
-            self._update_display_property(key, message.topic)
+        if message.topic in self._mqtt_topic_to_state:
+            key = self._mqtt_topic_to_state[message.topic]
+            self._update_display_property(key, message.payload.decode("utf-8"))
+        elif message.topic in self._mqtt_topic_to_switch:
+            key = self._mqtt_topic_to_switch[message.topic]
+            value = False
+            if message.payload.decode("utf-8") == "true":
+                value = True
+            self._gpio.set_pin_state(key, value)
 
-    def _mqtt_publish(self, key: str, value: any):
+    def _mqtt_publish_property(self, key: str, value: any):
         if self._mqtt and len(key) > 0:
             topic = self._key_to_topic(key)
             if topic:
@@ -150,20 +169,14 @@ class PeripheralService:
 
         if property_changed:
             self._local_properties[key] = value
-            self._mqtt_publish(key, value)
+            self._mqtt_publish_property(key, value)
 
     def _update_display_property(self, key: str, value: any):
         self._display_properties[key] = value
 
     def _key_to_topic(self, key: str):
-        if key in self._mqtt_propertytopics:
-            return self._mqtt_propertytopics[key]
-
-        return None
-
-    def _topic_to_key(self, topic: str):
-        if topic in self._mqtt_topicproperties:
-            return self._mqtt_topicproperties[topic]
+        if key in self._mqtt_state_to_topic:
+            return self._mqtt_state_to_topic[key]
 
         return None
 

@@ -41,15 +41,18 @@ class BaseGpio:
 
         return False
 
-    def pin_status(self, id: str):
+    def get_pin_state(self, id: str):
         result = None
         return result
 
-    def enable(self, id: str):
+    def set_pin_state(self, id: str, status: bool):
         pass
 
+    def enable(self, id: str):
+        self.set_pin_state(id, True)
+
     def disable(self, id: str):
-        pass
+        self.set_pin_state(id, False)
 
     def toggle(self, id: str):
         pass

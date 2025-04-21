@@ -1,11 +1,15 @@
+import os
+
 from .webapp.controllers import kestro_controller, peripherals_controller
 from .webapp.webserver import WebServer
 from .peripherals.peripheral_service import PeripheralService
 
 
 def create_app():
-    peripheral_service = PeripheralService()
-    peripheral_service.load_config("kestro.ini")
+    config_path = os.getenv("KESTRO_CONFIG", "kestro.ini")
+    
+    peripheral_service = PeripheralService()    
+    peripheral_service.load_config(config_path)
     peripheral_service.start()
 
     webserver = WebServer(__name__)

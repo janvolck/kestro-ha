@@ -20,7 +20,7 @@ def gpio_pin_status(pin_id):
     if not peripheral_service:
         abort(500)
 
-    return jsonify(peripheral_service.gpio().pin_status(pin_id))
+    return jsonify(peripheral_service.gpio().get_pin_state(pin_id))
 
 
 @api.route("/gpios/<string:pin_id>/on", methods=["POST"])

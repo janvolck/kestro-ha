@@ -58,17 +58,30 @@ class GpioManager:
 
         return result
 
-    def pin_status(self, pin: str):
+    def get_pin_state(self, pin: str):
         result = None
         for device in self._devices.values():
             if device.has_pin(pin):
-                result = device.pin_status(pin)
+                result = device.get_pin_state(pin)
                 break
 
         if not result:
             raise ValueError(f"""pin {pin} not found""")
 
         return result
+
+    def set_pin_state(self, pin: str, status: bool):
+        pinFound = False
+
+        for device in self._devices.values():
+            if device.has_pin(pin):
+                pinFound = True
+                device.set_pin_state(pin, status)
+
+        if not pinFound:
+            raise ValueError(f"""pin {pin} not found""")
+
+        return pinFound
 
     def enable(self, pin):
         pinFound = False
