@@ -137,7 +137,7 @@ class MqttService:
 
         # publish discovery messages
         for topic, payload in self._mqtt_birth_messages.items():
-            self._mqtt.publish(topic, payload)
+            self._mqtt.publish(topic, payload, retain=True)
 
     #         sensor_status = self._peripheral_service.sensors().status()
     #         for status in sensor_status:
@@ -191,7 +191,7 @@ class MqttService:
         if self._mqtt and len(key) > 0:
             topic = self._state_to_topic(key)
             if topic:
-                self._mqtt.publish(topic, "on" if value else "off")
+                self._mqtt.publish(topic, "on" if value else "off", retain=True)
 
     def _property_to_topic(self, key: str):
         if key in self._mqtt_property_to_topic:
