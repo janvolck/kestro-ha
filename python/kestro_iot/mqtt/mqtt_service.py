@@ -27,6 +27,7 @@ class MqttService:
         self._mqtt_topic_to_state: dict[str, str] = {}
         self._mqtt_control_to_topic: dict[str, str] = {}
         self._mqtt_topic_to_control: dict[str, str] = {}
+        self._mqtt_birth_messages: dict[str, str] = {}
 
         self._aborted = False
 
@@ -36,8 +37,8 @@ class MqttService:
 
         config = ConfigParser()
         config.read(config_path)
-        self._mqtt_load_config(config)
         self._mqtt_load_topic_config(config)
+        self._mqtt_load_client_config(config)
 
     async def abort(self):
         self._aborted = True
@@ -48,30 +49,6 @@ class MqttService:
     def start(self):
         if self._mqtt and not self._aborted:
             self._mqtt.loop_start()
-
-    def _mqtt_load_config(self, config: ConfigParser):
-        mqtt_client_id = None
-        mqtt_host = None
-        mqtt_port = 1883
-
-        if config.has_option("mqtt", "id"):
-            mqtt_client_id = config.get("mqtt", "id")
-
-        if config.has_option("mqtt", "host"):
-            mqtt_host = config.get("mqtt", "host")
-
-        if config.has_option("mqtt", "port"):
-            mqtt_port = config.getint("mqtt", "port")
-
-        if mqtt_host:
-            self._mqtt = mqtt.Client(
-                mqtt.CallbackAPIVersion.VERSION2, client_id=mqtt_client_id
-            )
-            self._mqtt.on_connect = self._mqtt_on_connect
-            self._mqtt.on_connect_fail = self._mqtt_on_connect_fail
-            self._mqtt.on_disconnect = self._mqtt_on_disconnect
-            self._mqtt.on_message = self._mqtt_on_message
-            self._mqtt.connect_async(mqtt_host, mqtt_port)
 
     def _mqtt_load_topic_config(self, config: ConfigParser):
         if config.has_section("mqtt.properties"):
@@ -88,6 +65,42 @@ class MqttService:
             for key, value in config.items("mqtt.controls"):
                 self._mqtt_control_to_topic[key] = value
                 self._mqtt_topic_to_control[value] = key
+
+    def _mqtt_load_client_config(self, config: ConfigParser):
+        mqtt_client_id = None
+        mqtt_host = None
+        mqtt_port = 1883
+
+        if config.has_option("mqtt", "id"):
+            mqtt_client_id = config.get("mqtt", "id")
+
+        if config.has_option("mqtt", "host"):
+            mqtt_host = config.get("mqtt", "host")
+
+        if config.has_option("mqtt", "port"):
+            mqtt_port = config.getint("mqtt", "port")
+
+        if config.has_option("mqtt", "birth.messages"):
+            messages = config.get("mqtt", "birth.messages")
+            for message in messages.split(" "):
+                topic = None
+                payload = None
+                if config.has_option(message, "topic"):
+                    topic = config.get(message, "topic")
+                if config.has_option(message, "payload"):
+                    payload = config.get(message, "payload")
+                if topic and payload:
+                    self._mqtt_birth_messages[topic] = payload
+
+        if mqtt_host:
+            self._mqtt = mqtt.Client(
+                mqtt.CallbackAPIVersion.VERSION2, client_id=mqtt_client_id
+            )
+            self._mqtt.on_connect = self._mqtt_on_connect
+            self._mqtt.on_connect_fail = self._mqtt_on_connect_fail
+            self._mqtt.on_disconnect = self._mqtt_on_disconnect
+            self._mqtt.on_message = self._mqtt_on_message
+            self._mqtt.connect_async(mqtt_host, mqtt_port)
 
     def _mqtt_on_connect(
         self, client: mqtt.Client, userdata, flags, reason_code, properties
@@ -121,6 +134,10 @@ class MqttService:
                     value = output["value"]
                     self._mqtt_publish_property(pin, value)
                     self._mqtt_publish_state(pin, value)
+
+        # publish discovery messages
+        for topic, payload in self._mqtt_birth_messages.items():
+            self._mqtt.publish(topic, payload)
 
     #         sensor_status = self._peripheral_service.sensors().status()
     #         for status in sensor_status:
@@ -195,11 +212,6 @@ class MqttService:
                 self._mqtt.publish(topic, event.status)
 
     def _on_pin_state_changed(self, event: GpioPinStateChangedEvent):
-        if self._mqtt and event:
-            if event.id in self._mqtt_property_to_topic:
-                topic = self._mqtt_property_to_topic[event.id]
-                self._mqtt.publish(topic, event.status)
-
-            if event.id in self._mqtt_state_to_topic:
-                topic = self._mqtt_state_to_topic[event.id]
-                self._mqtt.publish(topic, event.status)
+        if event:
+            self._mqtt_publish_property(event.id, event.status)
+            self._mqtt_publish_state(event.id, event.status)

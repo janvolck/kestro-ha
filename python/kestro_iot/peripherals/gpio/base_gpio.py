@@ -16,8 +16,9 @@ class BaseGpio:
         self._status_changed_observers: list[GpioStatusChangedSubscriber] = []
         self._pin_state_changed_observers: list[GpioPinStateChangedSubscriber] = []
 
-        self.outputs: dict[str, bool] = {}
-        self.inputs: dict[str, bool] = {}
+        self._outputs: dict[str, bool] = {}
+        self._inputs: dict[str, bool] = {}
+        self._invert_value: list[str] = []
 
     def subscribe_to_status_changed(self, observer: GpioStatusChangedSubscriber):
         if observer not in self._status_changed_observers:
@@ -42,22 +43,22 @@ class BaseGpio:
         return result
 
     def has_pin(self, id: str):
-        if id in self.inputs:
+        if id in self._inputs:
             return True
 
-        if id in self.outputs:
+        if id in self._outputs:
             return True
 
         return False
 
     def has_input(self, id: str):
-        if id in self.inputs:
+        if id in self._inputs:
             return True
 
         return False
 
     def has_output(self, id: str):
-        if id in self.outputs:
+        if id in self._outputs:
             return True
 
         return False
@@ -93,6 +94,11 @@ class BaseGpio:
         event = GpioPinStateChangedEvent(self, id, status)
         for observer in self._pin_state_changed_observers:
             observer(event)
+
+    def _convert_pin_state(self, pin: str, value: bool) -> bool:
+        if pin in self._invert_value:
+            return not value
+        return value
 
 
 class GpioStatusChangedEvent:

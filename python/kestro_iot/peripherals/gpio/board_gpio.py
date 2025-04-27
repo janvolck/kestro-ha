@@ -13,7 +13,6 @@ class BoardGpio(BaseGpio):
         self._configuration = configuration[id]
         self.__pin_states: dict[str, bool] = {}
         self.__pins: dict[str, digitalio.DigitalInOut] = {}
-        self.__invert_value: list[str] = []
 
         for pin_id in self._configuration:
             board_pin: digitalio.Pin = None
@@ -52,20 +51,21 @@ class BoardGpio(BaseGpio):
                 if "invert_value" in gpio_config:
                     __invert = gpio_config.get("invert_value")
                     if "true" == __invert:
-                        self.__invert_value.append(gpio_id)
-                        gpio_value = not gpio_value
+                        self._invert_value.append(gpio_id)
 
             if gpio_mode and board_pin:
                 board_io = digitalio.DigitalInOut(board_pin)
                 if "input" == gpio_mode:
                     board_io.switch_to_input(pull=gpio_state)
-                    self.inputs[gpio_id] = board_io.value
+                    self._inputs[gpio_id] = board_io.value
                     self.__pins[gpio_id] = board_io
                     self.__pin_states[gpio_id] = board_io.value
 
                 elif "output" == gpio_mode:
-                    board_io.switch_to_output(value=gpio_value)
-                    self.outputs[gpio_id] = board_io.value
+                    board_io.switch_to_output(
+                        value=self._convert_pin_state(gpio_id, gpio_value)
+                    )
+                    self._outputs[gpio_id] = board_io.value
                     self.__pins[gpio_id] = board_io
                     self.__pin_states[gpio_id] = board_io.value
 
@@ -77,11 +77,11 @@ class BoardGpio(BaseGpio):
         inputs = []
         outputs = []
 
-        for id, input in self.inputs.items():
-            inputs.append({"pin": id, "value": not (input)})
+        for id, input in self._inputs.items():
+            inputs.append({"pin": id, "value": self._convert_pin_state(id, input)})
 
-        for id, output in self.outputs.items():
-            outputs.append({"pin": id, "value": not (output)})
+        for id, output in self._outputs.items():
+            outputs.append({"pin": id, "value": self._convert_pin_state(id, output)})
 
         if len(inputs) > 0:
             result["inputs"] = inputs
@@ -94,23 +94,23 @@ class BoardGpio(BaseGpio):
     def get_pin_state(self, pin: str):
         result = None
         if pin in self.__pin_states:
-            result = {"pin": pin, "value": not (self.__pin_states[pin])}
+            result = {
+                "pin": pin,
+                "value": self._convert_pin_state(pin, self.__pin_states[pin]),
+            }
         else:
             raise ValueError(f"""pin {pin} not found""")
 
         return result
 
     def set_pin_state(self, pin: str, status: bool):
-        if pin in self.outputs and pin in self.__pins:
-            if pin in self.__invert_value:
-                self.__pins[pin].value = not status
-            else:
-                self.__pins[pin].value = status
+        if pin in self._outputs and pin in self.__pins:
+            self.__pins[pin].value = self._convert_pin_state(pin, status)
         else:
             raise ValueError(f"""pin {pin} not found""")
 
     def toggle(self, pin):
-        if pin in self.outputs and pin in self.__pins:
+        if pin in self._outputs and pin in self.__pins:
             self.__pins[pin].value = not self.__pins[pin].value
         else:
             raise ValueError(f"""pin {pin} not found""")
@@ -132,12 +132,14 @@ class BoardGpio(BaseGpio):
                 self.__pin_states[gpio_id] = current_state
                 status_changed = True
 
-                if gpio_id in self.inputs:
-                    self.inputs[gpio_id] = current_state
-                elif gpio_id in self.outputs:
-                    self.outputs[gpio_id] = current_state
+                if gpio_id in self._inputs:
+                    self._inputs[gpio_id] = current_state
+                elif gpio_id in self._outputs:
+                    self._outputs[gpio_id] = current_state
 
-                self._publish_pin_state_changed(gpio_id, current_state)
+                self._publish_pin_state_changed(
+                    gpio_id, self._convert_pin_state(gpio_id, current_state)
+                )
 
         if status_changed:
             self._publish_status_changed(self.status())
