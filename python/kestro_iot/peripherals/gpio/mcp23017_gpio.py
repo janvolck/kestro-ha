@@ -148,6 +148,7 @@ class Mcp23017Gpio(BaseGpio):
                 gpio_id = self.__pin_to_gpio_id[pin]
                 interrupts.append(gpio_id)
 
+        status_changed = False
         for gpio_id, pin in self.__pins.items():
             known_state = None
             current_state = self.__pins[gpio_id].value
@@ -164,8 +165,14 @@ class Mcp23017Gpio(BaseGpio):
                     f"""Pin number: {pin} mapped to {gpio_id} changed to value {current_state}"""
                 )
                 self.__pin_states[gpio_id] = current_state
+                status_changed = True
 
                 if gpio_id in self.inputs:
                     self.inputs[gpio_id] = current_state
                 elif gpio_id in self.outputs:
                     self.outputs[gpio_id] = current_state
+
+                self._publish_pin_state_changed(gpio_id, current_state)
+
+        if status_changed:
+            self._publish_status_changed(self.status())

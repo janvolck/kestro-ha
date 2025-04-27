@@ -29,8 +29,15 @@ class Dht22(BaseTemperatureSensor, BaseHumiditySensor):
     async def refresh(self):
         if self._dht22:
             try:
-                self.temperature = self._dht22.temperature
-                self.humidity = self._dht22.humidity
+                temperature = self._dht22.temperature
+                humidity = self._dht22.humidity
+
+                if self.temperature != temperature or self.humidity != humidity:
+                    self.temperature = temperature
+                    self.humidity = humidity
+
+                    self._publish_status_changed(self.status())
+
             except RuntimeError:
                 pass
             except Exception:

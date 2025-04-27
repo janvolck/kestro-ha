@@ -31,7 +31,12 @@ class HcSr04(BaseDistanceSensor):
     async def refresh(self):
         if self._hcsr04:
             try:
-                self.distance = self._hcsr04.distance
+                distance = self._hcsr04.distance
+
+                if self.distance != distance:
+                    self.distance = distance
+                    self._publish_status_changed(self.status())
+
             except RuntimeError:
                 pass
             except Exception:

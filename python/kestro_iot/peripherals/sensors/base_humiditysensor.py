@@ -13,5 +13,4 @@ class BaseHumiditySensor(BaseSensor):
         result = {"humidity": self.humidity}
         return result
 
-    async def refresh(self):
-        pass
+    async def refresh(self): ...

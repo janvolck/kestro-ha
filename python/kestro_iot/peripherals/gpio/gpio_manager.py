@@ -1,4 +1,10 @@
-from .base_gpio import BaseGpio
+from .base_gpio import (
+    BaseGpio,
+    GpioStatusChangedSubscriber,
+    GpioPinStateChangedSubscriber,
+    GpioStatusChangedEvent,
+    GpioPinStateChangedEvent,
+)
 from configparser import ConfigParser
 
 
@@ -6,6 +12,8 @@ class GpioManager:
 
     def __init__(self):
         self._devices: dict[str, BaseGpio] = {}
+        self._status_changed_observers: list[GpioStatusChangedSubscriber] = []
+        self._pin_state_changed_observers: list[GpioPinStateChangedSubscriber] = []
 
     def load_config(self, config: ConfigParser):
         if config.has_option("gpio", "devices"):
@@ -18,15 +26,42 @@ class GpioManager:
                         from .mcp23017_gpio import Mcp23017Gpio
 
                         gpio_device = Mcp23017Gpio(id=device, configuration=config)
+                        gpio_device.subscribe_to_status_changed(
+                            self._on_gpio_status_changed
+                        )
+                        gpio_device.subscribe_to_pin_state_changed(
+                            self._on_pin_state_changed
+                        )
                         self.add(device, gpio_device)
                     elif device_type == "board":
                         from .board_gpio import BoardGpio
 
                         gpio_device = BoardGpio(id=device, configuration=config)
+                        gpio_device.subscribe_to_status_changed(
+                            self._on_gpio_status_changed
+                        )
+                        gpio_device.subscribe_to_pin_state_changed(
+                            self._on_pin_state_changed
+                        )
                         self.add(device, gpio_device)
 
-    def __del__(self):
-        pass
+    def subscribe_to_status_changed(self, observer: GpioStatusChangedSubscriber):
+        if observer not in self._status_changed_observers:
+            self._status_changed_observers.append(observer)
+
+    def unsubscribe_from_status_changed(self, observer: GpioStatusChangedSubscriber):
+        if observer in self._status_changed_observers:
+            self._status_changed_observers.remove(observer)
+
+    def subscribe_to_pin_state_changed(self, observer: GpioPinStateChangedSubscriber):
+        if observer not in self._pin_state_changed_observers:
+            self._pin_state_changed_observers.append(observer)
+
+    def unsubscribe_from_pin_state_changed(
+        self, observer: GpioPinStateChangedSubscriber
+    ):
+        if observer in self._pin_state_changed_observers:
+            self._pin_state_changed_observers.remove(observer)
 
     def add(self, id: str, device: BaseGpio):
         self._devices[id] = device
@@ -116,6 +151,25 @@ class GpioManager:
         if not pinFound:
             raise ValueError(f"""pin {pin} not found""")
 
+    def push(self, pin):
+        pinFound = False
+
+        for device in self._devices.values():
+            if device.has_pin(pin):
+                device.push(pin)
+                pinFound = True
+
+        if not pinFound:
+            raise ValueError(f"""pin {pin} not found""")
+
     async def refresh(self):
         for device in self._devices.values():
             await device.refresh()
+
+    def _on_gpio_status_changed(self, event: GpioStatusChangedEvent):
+        for observer in self._status_changed_observers:
+            observer(event)
+
+    def _on_pin_state_changed(self, event: GpioPinStateChangedEvent):
+        for observer in self._pin_state_changed_observers:
+            observer(event)

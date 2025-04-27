@@ -24,5 +24,10 @@ class Ina260(BasePowerSensor):
 
     async def refresh(self):
         if self._ina260:
-            self.voltage = self._ina260.voltage
-            self.current = self._ina260.current / 1000.0
+            voltage = self._ina260.voltage
+            current = self._ina260.current / 1000.0
+
+            if self.voltage != voltage or self.current != current:
+                self.voltage = voltage
+                self.current = current
+                self._publish_status_changed(self.status())
