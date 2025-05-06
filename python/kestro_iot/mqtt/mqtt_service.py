@@ -135,15 +135,13 @@ class MqttService:
                     self._mqtt_publish_property(pin, value)
                     self._mqtt_publish_state(pin, value)
 
+        sensor_status = self._peripheral_service.sensors().status()
+        for sensor, value in sensor_status.items():
+            self._mqtt_publish_property(sensor, value)
+
         # publish discovery messages
         for topic, payload in self._mqtt_birth_messages.items():
             self._mqtt.publish(topic, payload, retain=True)
-
-    #         sensor_status = self._peripheral_service.sensors().status()
-    #         for status in sensor_status:
-    #             if "sensor" in status:
-    #                 for id, value in status["sensor"].items():
-    #                     self._mqtt_publish_property(id, value)
 
     def _mqtt_on_connect_fail(self, client: mqtt.Client, userdata):
         self.__log.debug(f"Connect failed")
@@ -207,9 +205,17 @@ class MqttService:
 
     def _on_sensor_status_changed(self, event: SensorStatusChangedEvent):
         if self._mqtt and event:
-            if event.id in self._mqtt_property_to_topic:
-                topic = self._mqtt_property_to_topic[event.id]
-                self._mqtt.publish(topic, event.status)
+            if isinstance(event.status, dict):
+                for key, value in event.status.items():
+                    property_id = f"{event.id}.{key}"
+                    if property_id in self._mqtt_property_to_topic:
+                        topic = self._mqtt_property_to_topic[property_id]
+                        self._mqtt.publish(topic, value)
+            elif isinstance(event.status, str):
+                if event.id in self._mqtt_property_to_topic:
+                    topic = self._mqtt_property_to_topic[event.id]
+                    self._mqtt.publish(topic, event.status)
+                
 
     def _on_pin_state_changed(self, event: GpioPinStateChangedEvent):
         if event:

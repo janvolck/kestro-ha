@@ -1,0 +1,4 @@
+
+### GET sensors statuses
+GET http://{{host}}:{{port}}/api/kestro/peripherals/sensors
+

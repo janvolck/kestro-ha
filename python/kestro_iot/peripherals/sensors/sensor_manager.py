@@ -62,7 +62,7 @@ class SensorManager:
             device_status = device.status()
             if device_status:
                 for key, value in device_status.items():
-                    sensor_key = f"""{device.id}::{key}"""
+                    sensor_key = f"""{device.id}.{key}"""
                     result[sensor_key] = value
 
         return result

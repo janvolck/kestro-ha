@@ -212,9 +212,8 @@ class PeripheralService:
 
     def _on_sensor_status_changed(self, event: SensorStatusChangedEvent):
         if event:
-            for key, value in event.status.items():
-                property_name = f"{event.id}.{key}"
-                self.update_display_property(property_name, value)
+            property_name = f"{event}.{event.id}"
+            self.update_display_property(property_name, event.status)
 
             for observer in self._sensor_status_changed_observers:
                 observer(event)

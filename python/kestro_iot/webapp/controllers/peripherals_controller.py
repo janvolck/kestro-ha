@@ -49,6 +49,16 @@ def toggle(pin_id):
     peripheral_service.gpio().toggle(pin_id)
     return ("", 204)
 
+@api.route("/sensors")
+def sensors_status():
+    if not peripheral_service:
+        abort(500)
+
+    if not peripheral_service.sensors():
+        abort(404)
+
+    return jsonify(peripheral_service.sensors().status())
+
 
 @api.route("/sensors/power")
 def power_status():

@@ -1,7 +1,8 @@
 from __future__ import annotations
 from configparser import ConfigParser
+from concurrent.futures import ThreadPoolExecutor
 
-import asyncio
+import time
 
 
 class BaseGpio:
@@ -19,6 +20,8 @@ class BaseGpio:
         self._outputs: dict[str, bool] = {}
         self._inputs: dict[str, bool] = {}
         self._invert_value: list[str] = []
+
+        self._executor = ThreadPoolExecutor(max_workers=5)
 
     def subscribe_to_status_changed(self, observer: GpioStatusChangedSubscriber):
         if observer not in self._status_changed_observers:
@@ -73,11 +76,11 @@ class BaseGpio:
     def disable(self, id: str):
         self.set_pin_state(id, False)
 
-    async def push(self, id: str, time: float = 1.0):
-        if self.has_input(str):
-            self.toggle(id)
-            await asyncio.sleep(time)
-            self.toggle(id)
+    def push(self, id: str, time: float = 1.0):
+        if self.has_output(id):
+            self._executor.submit(self._background_push, id, time)
+        else:
+            raise ValueError(f"Pin {id} is not an output pin")
 
     def set_pin_state(self, id: str, status: bool): ...
 
@@ -99,6 +102,14 @@ class BaseGpio:
         if pin in self._invert_value:
             return not value
         return value
+
+    def _background_push(self, id: str, delay: float):
+        try:
+            self.toggle(id)
+            time.sleep(delay)
+            self.toggle(id)
+        except Exception as e:
+            print(f"Error during push operation for pin {id}: {e}")
 
 
 class GpioStatusChangedEvent:
