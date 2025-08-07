@@ -15,11 +15,13 @@ class BoardGpio(BaseGpio):
         self.__pins: dict[str, digitalio.DigitalInOut] = {}
 
         for pin_id in self._configuration:
-            board_pin: digitalio.Pin = None
+            from typing import Optional
+            board_pin: Optional[digitalio.Pin] = None
             gpio_config = None
-            gpio_id: str = None
-            gpio_mode: str = None
-            gpio_state: digitalio.Pull = None
+            from typing import Optional
+            gpio_id: Optional[str] = None
+            gpio_mode: Optional[str] = None
+            gpio_state: Optional[digitalio.Pull] = None
             gpio_value: bool = False
 
             if pin_id.startswith("d") and hasattr(board, pin_id.upper()):
@@ -29,7 +31,7 @@ class BoardGpio(BaseGpio):
 
             if pin_id in self._configuration:
                 gpio_id = self._configuration.get(pin_id)
-                if configuration.has_section(gpio_id):
+                if gpio_id and configuration.has_section(gpio_id):
                     gpio_config = configuration[gpio_id]
 
             if gpio_config:
@@ -44,13 +46,13 @@ class BoardGpio(BaseGpio):
                         gpio_state = digitalio.Pull.UP
 
                 if "value" in gpio_config:
-                    __value = gpio_config.get("value").lower()
-                    if "true" == __value:
+                    __value = gpio_config.get("value")
+                    if __value and "true" == __value.lower():
                         gpio_value = True
 
                 if "invert_value" in gpio_config:
                     __invert = gpio_config.get("invert_value")
-                    if "true" == __invert:
+                    if gpio_id and "true" == __invert:
                         self._invert_value.append(gpio_id)
 
             if gpio_mode and board_pin:

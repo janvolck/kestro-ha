@@ -54,7 +54,7 @@ class Hd44780Display(BaseDisplay):
         if self.__all_settings_found:
             self._initialize()
 
-    async def refresh(self, properties: dict[str, any]):
+    async def refresh(self, properties: dict[str, object]):
 
         if self.__all_settings_found:
             message = self.formatDisplayText(properties)
@@ -71,7 +71,7 @@ class Hd44780Display(BaseDisplay):
             for i in range(num_lines, len(self.__HD44780_LINES)):
                 self._write_string("", self.__HD44780_LINES[i])
 
-    def _create_io(self, key: str):
+    def _create_io(self, key: str) -> digitalio.DigitalInOut:
         pin_name = None
         board_pin = None
         pin = None
@@ -86,6 +86,8 @@ class Hd44780Display(BaseDisplay):
             pin = digitalio.DigitalInOut(board_pin)
             pin.switch_to_output()
             pin.value = False
+        else:
+            raise KeyError(f"Pin {key} not found in configuration or board.")
 
         return pin
 
@@ -96,9 +98,9 @@ class Hd44780Display(BaseDisplay):
             # 0011 0000 initialise 8-bit
             self._send_command(0x30)
             # 0011 0000 initialise 8-bit
-            self._send_command(0x30)            
+            self._send_command(0x30)
             # 0011 1100 function set
-            self._send_command(0x38)            
+            self._send_command(0x38)
             # 0000 0110 Cursor move direction
             self._send_command(0x06)
             # 0000 1100 Display On,Cursor Off, Blink Off
@@ -138,12 +140,11 @@ class Hd44780Display(BaseDisplay):
             self.__db1.value = False
             self.__db2.value = False
             self.__db3.value = False
-        
+
         self.__db4.value = False
         self.__db5.value = False
         self.__db6.value = False
         self.__db7.value = False
-
 
         if self.__8bit:
             self.__db0.value = bits & 0x01 == 0x01

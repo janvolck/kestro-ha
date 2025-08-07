@@ -14,7 +14,7 @@ class Ina260(BasePowerSensor):
 
         address: int = 0x40
         if "address" in self._configuration:
-            address = self._configuration["address"]
+            address = int(self._configuration["address"])
 
         if self._i2c:
             self._ina260 = adafruit_ina260.INA260(self._i2c, address=address)

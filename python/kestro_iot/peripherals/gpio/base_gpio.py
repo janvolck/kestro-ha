@@ -88,7 +88,7 @@ class BaseGpio:
 
     async def refresh(self): ...
 
-    def _publish_status_changed(self, status: any):
+    def _publish_status_changed(self, status):
         event = GpioStatusChangedEvent(self, status)
         for observer in self._status_changed_observers:
             observer(event)
@@ -114,7 +114,7 @@ class BaseGpio:
 
 class GpioStatusChangedEvent:
 
-    def __init__(self, sensor: BaseGpio, status: any):
+    def __init__(self, sensor: BaseGpio, status):
         self.source = sensor
         self.status = status
 

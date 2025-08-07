@@ -27,10 +27,10 @@ class GpioManager:
 
                         gpio_device = Mcp23017Gpio(id=device, configuration=config)
                         gpio_device.subscribe_to_status_changed(
-                            self._on_gpio_status_changed
+                            self._on_gpio_status_changed  # type: ignore
                         )
                         gpio_device.subscribe_to_pin_state_changed(
-                            self._on_pin_state_changed
+                            self._on_pin_state_changed  # type: ignore
                         )
                         self.add(device, gpio_device)
                     elif device_type == "board":
@@ -38,10 +38,10 @@ class GpioManager:
 
                         gpio_device = BoardGpio(id=device, configuration=config)
                         gpio_device.subscribe_to_status_changed(
-                            self._on_gpio_status_changed
+                            self._on_gpio_status_changed  # type: ignore
                         )
                         gpio_device.subscribe_to_pin_state_changed(
-                            self._on_pin_state_changed
+                            self._on_pin_state_changed  # type: ignore
                         )
                         self.add(device, gpio_device)
 
@@ -166,10 +166,10 @@ class GpioManager:
         for device in self._devices.values():
             await device.refresh()
 
-    def _on_gpio_status_changed(self, event: GpioStatusChangedEvent):
+    def _on_gpio_status_changed(self, event: GpioStatusChangedEvent) -> None:
         for observer in self._status_changed_observers:
             observer(event)
 
-    def _on_pin_state_changed(self, event: GpioPinStateChangedEvent):
+    def _on_pin_state_changed(self, event: GpioPinStateChangedEvent) -> None:
         for observer in self._pin_state_changed_observers:
             observer(event)

@@ -24,21 +24,21 @@ class SensorManager:
                         from .hc_sr04 import HcSr04
 
                         sensor = HcSr04(id=device, configuration=config)
-                        sensor.subscribe(self._on_sensor_status_changed)
+                        sensor.subscribe(self._on_sensor_status_changed)  # type: ignore
                         self.add(device, sensor)
 
                     elif device_type == "dht22":
                         from .dht22 import Dht22
 
                         sensor = Dht22(id=device, configuration=config)
-                        sensor.subscribe(self._on_sensor_status_changed)
+                        sensor.subscribe(self._on_sensor_status_changed)  # type: ignore
                         self.add(device, sensor)
 
                     elif device_type == "ina260":
                         from .ina260_circuitpython import Ina260
 
                         sensor = Ina260(id=device, configuration=config)
-                        sensor.subscribe(self._on_sensor_status_changed)
+                        sensor.subscribe(self._on_sensor_status_changed)  # type: ignore
                         self.add(device, sensor)
 
     def add(self, id: str, driver: BaseSensor):
@@ -56,7 +56,7 @@ class SensorManager:
             self._observers.remove(observer)
 
     def status(self):
-        result: dict[str, any] = {}
+        result: dict[str, object] = {}
 
         for device in self._devices.values():
             device_status = device.status()
@@ -71,6 +71,6 @@ class SensorManager:
         for device in self._devices.values():
             await device.refresh()
 
-    def _on_sensor_status_changed(self, event: SensorStatusChangedEvent):
+    def _on_sensor_status_changed(self, event: SensorStatusChangedEvent) -> None:
         for observer in self._observers:
             observer(event)

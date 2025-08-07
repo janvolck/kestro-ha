@@ -36,6 +36,6 @@ class DisplayManager:
     def remove(self, id: str):
         self._devices.pop(id)
 
-    async def refresh(self, properties: dict[str, any]):
+    async def refresh(self, properties: dict[str, object]):
         for device in self._devices.values():
             await device.refresh(properties)

@@ -13,6 +13,7 @@ from configparser import ConfigParser
 def noop():
     pass
 
+
 displayio._start_background = noop
 
 
@@ -59,6 +60,10 @@ class Ssd1306Display(BaseDisplay):
                     board, self._configuration["pin_dc"]
                 ):
                     pin_dc = getattr(board, self._configuration["pin_dc"])
+                else:
+                    raise KeyError(
+                        "Configuration for pin_dc is required for SPI connection"
+                    )
 
                 if "pin_reset" in self._configuration and hasattr(
                     board, self._configuration["pin_reset"]
@@ -103,23 +108,23 @@ class Ssd1306Display(BaseDisplay):
             self._display.brightness = self._brightness
             self._display.auto_refresh = False
 
+    async def refresh(self, properties: dict[str, object]):
+        
+        if self._display:
+            root = displayio.Group()
 
-    async def refresh(self, properties: dict[str, any]):
+            background = displayio.Bitmap(self._width, self._height, 1)
+            background_color = displayio.Palette(1)
+            background_color[0] = 0x000000  # Black
 
-        root = displayio.Group()
+            background_grid = displayio.TileGrid(
+                background, pixel_shader=background_color, x=0, y=0
+            )
+            root.append(background_grid)
 
-        background = displayio.Bitmap(self._width, self._height, 1)
-        background_color = displayio.Palette(1)
-        background_color[0] = 0x000000  # Black
-
-        background_grid = displayio.TileGrid(
-            background, pixel_shader=background_color, x=0, y=0
-        )
-        root.append(background_grid)
-
-        # Draw a label
-        text = self.formatDisplayText(properties)
-        text_area = label.Label(terminalio.FONT, text=text, color=0xFFFFFF, x=0, y=12)
-        root.append(text_area)
-        self._display.root_group = root
-        self._display.refresh()
+            # Draw a label
+            text = self.formatDisplayText(properties)
+            text_area = label.Label(terminalio.FONT, text=text, color=0xFFFFFF, x=0, y=12)
+            root.append(text_area)
+            self._display.root_group = root
+            self._display.refresh()

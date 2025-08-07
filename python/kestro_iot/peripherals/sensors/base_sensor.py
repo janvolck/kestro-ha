@@ -26,7 +26,7 @@ class BaseSensor:
 
     async def refresh(self): ...
 
-    def _publish_status_changed(self, status: any):
+    def _publish_status_changed(self, status):
         event = SensorStatusChangedEvent(self, status)
         for observer in self._observers:
             observer(event)
@@ -34,7 +34,7 @@ class BaseSensor:
 
 class SensorStatusChangedEvent:
 
-    def __init__(self, sensor: BaseSensor, status: any):
+    def __init__(self, sensor: BaseSensor, status):
         self.source = sensor
         self.id = sensor.id
         self.status = status

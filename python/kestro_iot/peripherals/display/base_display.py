@@ -12,8 +12,8 @@ class BaseDisplay:
         self._configuration = configuration[id]
         self._text_format = "N/A"
 
-    def formatDisplayText(self, properties: dict[str, any]):
-        data: dict[str, any] = {}
+    def formatDisplayText(self, properties: dict[str, object]):
+        data: dict[str, object] = {}
 
         for key, value in properties.items():
             chevron_key = key.replace(".", "_")
@@ -21,4 +21,4 @@ class BaseDisplay:
 
         return chevron.render(template=self._text_format, data=data)
 
-    async def refresh(self, properties: dict[str, any]): ...
+    async def refresh(self, properties: dict[str, object]): ...

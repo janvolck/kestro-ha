@@ -34,10 +34,10 @@ class PeripheralService:
         self._network = Network()
         self._displays = DisplayManager()
         self._gpio = GpioManager()
-        self._gpio.subscribe_to_status_changed(self._on_gpio_status_changed)
-        self._gpio.subscribe_to_pin_state_changed(self._on_pin_state_changed)
+        self._gpio.subscribe_to_status_changed(self._on_gpio_status_changed)  # type: ignore
+        self._gpio.subscribe_to_pin_state_changed(self._on_pin_state_changed)  # type: ignore
         self._sensors = SensorManager()
-        self._sensors.subscribe(self._on_sensor_status_changed)
+        self._sensors.subscribe(self._on_sensor_status_changed) # type: ignore
 
         self._network_addresses_index = 0
         self._network_address_last_rotate = None
@@ -87,7 +87,7 @@ class PeripheralService:
         if observer in self._pin_state_changed_observers:
             self._pin_state_changed_observers.remove(observer)
 
-    def update_display_property(self, key: str, value: any):
+    def update_display_property(self, key: str, value):
         self._display_properties[key] = value
 
     async def abort(self):
@@ -210,7 +210,7 @@ class PeripheralService:
 
             await asyncio.sleep(1.0)
 
-    def _on_sensor_status_changed(self, event: SensorStatusChangedEvent):
+    def _on_sensor_status_changed(self, event: SensorStatusChangedEvent) -> None:
         if event:
             property_name = f"{event}.{event.id}"
             self.update_display_property(property_name, event.status)
@@ -218,12 +218,12 @@ class PeripheralService:
             for observer in self._sensor_status_changed_observers:
                 observer(event)
 
-    def _on_gpio_status_changed(self, event: GpioStatusChangedEvent):
+    def _on_gpio_status_changed(self, event: GpioStatusChangedEvent) -> None:
         if event:
             for observer in self._gpio_status_changed_observers:
                 observer(event)
 
-    def _on_pin_state_changed(self, event: GpioPinStateChangedEvent):
+    def _on_pin_state_changed(self, event: GpioPinStateChangedEvent) -> None:
 
         if event:
             self.update_display_property(event.id, event.status)
