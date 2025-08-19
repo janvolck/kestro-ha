@@ -42,7 +42,7 @@ class BaseGpio:
             self._pin_state_changed_observers.remove(observer)
 
     def status(self):
-        result = {"inputs": None, "outputs": None}
+        result = {"inputs": [], "outputs": []}
         return result
 
     def has_pin(self, id: str):

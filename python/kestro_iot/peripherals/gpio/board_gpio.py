@@ -19,7 +19,7 @@ class BoardGpio(BaseGpio):
             board_pin: Optional[digitalio.Pin] = None
             gpio_config = None
             from typing import Optional
-            gpio_id: Optional[str] = None
+            gpio_id: str = ""
             gpio_mode: Optional[str] = None
             gpio_state: Optional[digitalio.Pull] = None
             gpio_value: bool = False
@@ -29,8 +29,8 @@ class BoardGpio(BaseGpio):
             else:
                 continue
 
-            if pin_id in self._configuration:
-                gpio_id = self._configuration.get(pin_id)
+            if pin_id in self._configuration and self._configuration.get(pin_id) is str:
+                gpio_id = str(self._configuration.get(pin_id))
                 if gpio_id and configuration.has_section(gpio_id):
                     gpio_config = configuration[gpio_id]
 
@@ -74,11 +74,11 @@ class BoardGpio(BaseGpio):
     def __del__(self):
         pass
 
-    def status(self):
-        result = {"inputs": None, "outputs": None}
+    def status(self):        
+        result = {"inputs": [], "outputs": []}
         inputs = []
         outputs = []
-
+        
         for id, input in self._inputs.items():
             inputs.append({"pin": id, "value": self._convert_pin_state(id, input)})
 

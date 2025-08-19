@@ -13,13 +13,19 @@ class HcSr04(BaseDistanceSensor):
         trigger_pin = None
         echo_pin = None
 
-        if "trigger_pin" in configuration and hasattr(
-            board, configuration["trigger_pin"]
+        if (
+            "trigger_pin" in configuration
+            and configuration["trigger_pin"] is str
+            and hasattr(board, str(configuration["trigger_pin"]))
         ):
-            trigger_pin = getattr(board, configuration["trigger_pin"])
+            trigger_pin = getattr(board, str(configuration["trigger_pin"]))
 
-        if "echo_pin" in configuration and hasattr(board, configuration["echo_pin"]):
-            echo_pin = getattr(board, configuration["echo_pin"])
+        if (
+            "echo_pin" in configuration
+            and configuration["echo_pin"] is str
+            and hasattr(board, str(configuration["echo_pin"]))
+        ):
+            echo_pin = getattr(board, str(configuration["echo_pin"]))
 
         if trigger_pin and echo_pin:
             self._hcsr04 = adafruit_hcsr04.HCSR04(

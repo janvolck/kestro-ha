@@ -108,7 +108,7 @@ class Ssd1306Display(BaseDisplay):
             self._display.brightness = self._brightness
             self._display.auto_refresh = False
 
-    async def refresh(self, properties: dict[str, object]):
+    async def refresh(self, properties: dict[str, str]):
         
         if self._display:
             root = displayio.Group()

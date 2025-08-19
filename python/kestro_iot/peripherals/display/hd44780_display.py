@@ -54,7 +54,7 @@ class Hd44780Display(BaseDisplay):
         if self.__all_settings_found:
             self._initialize()
 
-    async def refresh(self, properties: dict[str, object]):
+    async def refresh(self, properties: dict[str, str]):
 
         if self.__all_settings_found:
             message = self.formatDisplayText(properties)

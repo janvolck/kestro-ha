@@ -4,6 +4,7 @@ import digitalio
 from adafruit_mcp230xx.mcp23017 import MCP23017, _MCP23017_ADDRESS
 from adafruit_mcp230xx.digital_inout import DigitalInOut
 from configparser import ConfigParser
+from typing import Optional
 from .base_gpio import BaseGpio
 
 
@@ -33,8 +34,8 @@ class Mcp23017Gpio(BaseGpio):
 
         self._configuration = configuration[id]
         self.__pin_to_gpio_id: dict[int, str] = {}
-        self.__pin_states: dict[int, bool] = {}
-        self.__pins: dict[int, DigitalInOut] = {}
+        self.__pin_states: dict[str, bool] = {}
+        self.__pins: dict[str, DigitalInOut] = {}
 
         address = _MCP23017_ADDRESS
         if "address" in self._configuration:
@@ -48,13 +49,13 @@ class Mcp23017Gpio(BaseGpio):
             pin_id = self._PINS[pin]
             mcp_pin = self.mcp.get_pin(pin)
             gpio_config = None
-            gpio_id: str = None
-            gpio_mode: str = None
-            gpio_state: digitalio.Pull = None
+            gpio_id: str = ""
+            gpio_mode: Optional[str] = None
+            gpio_state: Optional[digitalio.Pull] = None
             gpio_value: bool = False
 
-            if pin_id in self._configuration:
-                gpio_id = self._configuration.get(pin_id)
+            if pin_id in self._configuration and self._configuration.get(pin_id) is str:
+                gpio_id = str(self._configuration.get(pin_id))
                 if configuration.has_section(gpio_id):
                     gpio_config = configuration[gpio_id]
 
@@ -70,8 +71,8 @@ class Mcp23017Gpio(BaseGpio):
                         gpio_state = digitalio.Pull.UP
 
                 if "value" in gpio_config:
-                    __value = gpio_config.get("value").lower()
-                    if "true" == __value:
+                    __value = gpio_config.get("value")
+                    if __value and "true" == __value.lower():
                         gpio_value = True
 
                 if "invert_value" in gpio_config:
@@ -106,7 +107,7 @@ class Mcp23017Gpio(BaseGpio):
         pass
 
     def status(self):
-        result = {"inputs": None, "outputs": None}
+        result = {"inputs": [], "outputs": []}
         inputs = []
         outputs = []
 

@@ -6,7 +6,7 @@ from .base_gpio import (
     GpioPinStateChangedEvent,
 )
 from configparser import ConfigParser
-
+from collections.abc import Iterable
 
 class GpioManager:
 
@@ -70,7 +70,7 @@ class GpioManager:
         self._devices.pop(id)
 
     def status(self):
-        result = {"inputs": None, "outputs": None}
+        result = {"inputs": [], "outputs": []}
         inputs = []
         outputs = []
 

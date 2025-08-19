@@ -1,8 +1,9 @@
 from flask import Blueprint, jsonify, abort, request
+from typing import Optional
 
 from ...peripherals.peripheral_service import PeripheralService
 
-peripheral_service: PeripheralService = None
+peripheral_service: Optional[PeripheralService] = None
 
 api = Blueprint("kestro_peripherals", __name__, url_prefix="/api/kestro/peripherals")
 
@@ -59,35 +60,3 @@ def sensors_status():
 
     return jsonify(peripheral_service.sensors().status())
 
-
-@api.route("/sensors/power")
-def power_status():
-    if not peripheral_service:
-        abort(500)
-
-    if not peripheral_service.power_sensor():
-        abort(404)
-
-    return jsonify(peripheral_service.power_sensor().status())
-
-
-@api.route("/sensors/temperature")
-def temperature_status():
-    if not peripheral_service:
-        abort(500)
-
-    if not peripheral_service.temperature_sensor():
-        abort(404)
-
-    return jsonify(peripheral_service.temperature_sensor().status())
-
-
-@api.route("/sensors/humidity")
-def humidity_status():
-    if not peripheral_service:
-        abort(500)
-
-    if not peripheral_service.humidity_sensor():
-        abort(404)
-
-    return jsonify(peripheral_service.humidity_sensor().status())
