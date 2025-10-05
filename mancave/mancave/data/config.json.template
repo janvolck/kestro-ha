@@ -1,0 +1,9 @@
+{
+    "wifi": {
+        "ssid": "YOUR_SSID",
+        "password": "YOUR_PASSWORD"
+    },
+    "device": {
+        "hostname": "YOUR_HOSTNAME"
+    }
+}
