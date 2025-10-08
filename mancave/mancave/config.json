@@ -1,9 +1,0 @@
-{
-    "wifi": {
-        "ssid": "KestroMedia",
-        "password": "PlaySomeMusic"
-    },
-    "device": {
-        "hostname": "mancave-esp8266"
-    }
-}
