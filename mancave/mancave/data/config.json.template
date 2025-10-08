@@ -5,5 +5,13 @@
     },
     "device": {
         "hostname": "YOUR_HOSTNAME"
+    },
+    "mqtt": {
+        "server": "YOUR_MQTT_SERVER",
+        "port": 1883,
+        "username": "YOUR_MQTT_USERNAME",
+        "password": "YOUR_MQTT_PASSWORD",
+        "client_id": "YOUR_CLIENT_ID",
+        "topic_prefix": "mancave"
     }
 }

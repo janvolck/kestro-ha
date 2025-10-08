@@ -1,0 +1,21 @@
+{
+    "name": "ADS1115Controller",
+    "version": "1.0.0",
+    "description": "Library for controlling ADS1115 ADC on ESP8266",
+    "keywords": "ads1115, adc, i2c, esp8266",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/janvolck/kestro-iot.git"
+    },
+    "authors": [
+        {
+            "name": "Jan Volckaert",
+            "maintainer": true
+        }
+    ],
+    "frameworks": "arduino",
+    "platforms": "espressif8266",
+    "dependencies": {
+        "adafruit/Adafruit ADS1X15": "^2.4.0"
+    }
+}
