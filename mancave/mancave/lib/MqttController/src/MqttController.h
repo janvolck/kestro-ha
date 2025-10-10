@@ -5,6 +5,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <functional>
+#include <vector>
 
 class MqttController
 {
@@ -20,11 +21,16 @@ public:
     };
 
     typedef std::function<void(const String &, const String &)> MessageCallback;
+    typedef std::function<void(bool)> PowerCallback;
+    typedef std::function<void(int, int)> GroupSpeedCallback;
 
     MqttController(Config config);
-    void begin(MessageCallback callback);
+    void begin(PowerCallback powerCallback, GroupSpeedCallback groupCallback);
     void update();
     void publish(const char *subtopic, const char *value, bool retained = true);
+    void setFanRpm(int index, unsigned long rpm);
+    void setAdc(int channel, float voltage);
+    void stop();
     bool isConnected() { return mqtt.connected(); }
 
 private:
@@ -32,6 +38,10 @@ private:
     WiFiClient _wifiClient;
     PubSubClient mqtt;
     MessageCallback _callback;
+    PowerCallback _powerCallback;
+    GroupSpeedCallback _groupCallback;
+    std::vector<unsigned long> _lastFanRpms;
+    std::vector<float> _lastAdcValues;
 
     bool reconnect();
     static void mqttCallback(char *topic, byte *payload, unsigned int length, void *controller);

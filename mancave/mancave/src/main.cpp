@@ -44,7 +44,6 @@ MqttController *mqttController;
 // Last published values
 struct
 {
-    unsigned long rpm[NUM_FANS] = {0};
     float adc[4] = {0};
 } lastPublished;
 
@@ -95,55 +94,28 @@ void setupOTA()
         Serial.println("OTA update starting...");
         // Safely shutdown systems before update
         fanController->disablePower();
-        mqttController->publish("status", "offline", true); });
+        if (mqttController)
+            mqttController->stop(); });
 
     ArduinoOTA.begin();
 }
 
-void handleMqttMessage(const String &topic, const String &payload)
+// MQTT callbacks are registered with the MqttController in setup()
+
+// Named callback functions (prefer methods over lambdas)
+void mqttPowerCallback(bool on)
 {
-    if (topic == "fan/power")
-    {
-        if (payload == "ON")
-            fanController->enablePower();
-        else if (payload == "OFF")
-            fanController->disablePower();
-    }
-    else if (topic == "fan/group/0")
-    {
-        int speed = payload.toInt();
-        if (speed >= 0 && speed <= 100)
-            fanController->setGroupSpeed(0, speed);
-    }
-    else if (topic == "fan/group/1")
-    {
-        int speed = payload.toInt();
-        if (speed >= 0 && speed <= 100)
-            fanController->setGroupSpeed(1, speed);
-    }
+    if (on)
+        fanController->enablePower();
+    else
+        fanController->disablePower();
 }
 
-void publishFanRPM(int fanIndex, unsigned long rpm)
+void mqttGroupCallback(int groupIdx, int speed)
 {
-    if (lastPublished.rpm[fanIndex] != rpm)
+    if (groupIdx >= 0 && groupIdx <= 1 && speed >= 0 && speed <= 100)
     {
-        char subtopic[20], value[10];
-        snprintf(subtopic, sizeof(subtopic), "fan/%d/rpm", fanIndex);
-        snprintf(value, sizeof(value), "%lu", rpm);
-        mqttController->publish(subtopic, value);
-        lastPublished.rpm[fanIndex] = rpm;
-    }
-}
-
-void publishADC(int channel, float voltage)
-{
-    if (abs(lastPublished.adc[channel] - voltage) > 0.01)
-    {
-        char subtopic[20], value[10];
-        snprintf(subtopic, sizeof(subtopic), "adc/%d", channel);
-        snprintf(value, sizeof(value), "%.3f", voltage);
-        mqttController->publish(subtopic, value);
-        lastPublished.adc[channel] = voltage;
+        fanController->setGroupSpeed(groupIdx, speed);
     }
 }
 
@@ -202,8 +174,9 @@ void setup()
         config.mqtt.password,
         config.mqtt.client_id,
         config.mqtt.topic_prefix};
-   mqttController = new MqttController(mqttConfig);
-   mqttController->begin(handleMqttMessage);
+        mqttController = new MqttController(mqttConfig);
+        // register named callback functions so main doesn't need MQTT logic
+        mqttController->begin(mqttPowerCallback, mqttGroupCallback);
 
     Serial.println("Setup done");
 }
@@ -217,21 +190,21 @@ void loop()
     fanController->update();
 
     static unsigned long lastUpdate = 0;
-    if (millis() - lastUpdate >= 5000)
+    if (millis() - lastUpdate >= 10000)
     {
         // Publish fan RPM values
         for (int i = 0; i < NUM_FANS; i++)
         {
             unsigned long rpm = fanController->getFanRPM(i);
-            publishFanRPM(i, rpm);
+            mqttController->setFanRpm(i, rpm);
             Serial.printf("Fan %d RPM: %lu\n", i, rpm);
         }
 
-        // Publish ADC values
+        // Publish ADC values via MQTT controller
         for (int i = 0; i < 4; i++)
         {
             float voltage = adc->readVoltage(i);
-            publishADC(i, voltage);
+            mqttController->setAdc(i, voltage);
             Serial.printf("ADC Channel %d: %.3fV\n", i, voltage);
         }
 
