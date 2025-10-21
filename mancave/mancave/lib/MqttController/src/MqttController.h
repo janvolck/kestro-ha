@@ -6,6 +6,7 @@
 #include <PubSubClient.h>
 #include <functional>
 #include <vector>
+#include <LittleFS.h>
 
 class MqttController
 {
@@ -32,6 +33,7 @@ public:
     void setAdc(int channel, float voltage);
     void stop();
     bool isConnected() { return mqtt.connected(); }
+    void publishBirthMessage();
 
 private:
     Config _config;

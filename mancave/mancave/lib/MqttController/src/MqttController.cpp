@@ -1,5 +1,6 @@
 #include "MqttController.h"
 #include <ArduinoJson.h>
+#include <LittleFS.h>
 
 MqttController::MqttController(Config config)
     : _config(config), mqtt(_wifiClient)
@@ -7,6 +8,9 @@ MqttController::MqttController(Config config)
     // start with empty last rpm vector; will resize on first setFanRpm call
     _lastFanRpms = std::vector<unsigned long>();
     _lastAdcValues = std::vector<float>();
+
+    // Increase MQTT buffer size for large birth messages
+    mqtt.setBufferSize(8192); // Increase from default 256 bytes to 8KB
 }
 
 void MqttController::begin(PowerCallback powerCallback, GroupSpeedCallback groupCallback)
@@ -42,53 +46,27 @@ bool MqttController::reconnect()
 
     // Prepare topic strings
     String prefix = _config.topic_prefix + "/";
-    String statusTopic = prefix + "status";
+    String availabilityTopic = prefix + "ventilation/availability";
 
     // Set Last Will message so broker will mark us offline if we disconnect unexpectedly.
     // willTopic, willQos=1, willRetain=true, willMessage="offline"
     if (mqtt.connect(_config.client_id.c_str(),
                      _config.username.c_str(),
                      _config.password.c_str(),
-                     statusTopic.c_str(), 1, true, "offline"))
+                     availabilityTopic.c_str(), 1, true, "offline"))
     {
         Serial.println("connected");
 
         // Subscribe to control topics
-        mqtt.subscribe((prefix + "fan/power").c_str());
-        mqtt.subscribe((prefix + "fan/group/+").c_str());
+        mqtt.subscribe((prefix + "ventilation/control").c_str());
+        mqtt.subscribe((prefix + "ventilation/group/#").c_str());
 
         // Publish initial states
         // Publish retained birth message so other clients know we're online
-        publish("status", "online", true);
+        publish("ventilation/availability", "online", true);
 
-        // Publish Home Assistant MQTT Discovery payload for a simple fan entity
-        // Topic: homeassistant/fan/<unique_id>/config
-        // Use retained=true so Home Assistant picks it up
-        {
-            String uniqueId = _config.client_id + String("_fan");
-            String discoveryTopic = String("homeassistant/fan/") + uniqueId + "/config";
-
-            // Build discovery JSON using ArduinoJson
-            StaticJsonDocument<512> doc;
-            doc["name"] = _config.client_id + String(" Fan");
-            doc["unique_id"] = uniqueId;
-            doc["command_topic"] = _config.topic_prefix + String("/fan/power");
-            doc["state_topic"] = _config.topic_prefix + String("/fan/power");
-            doc["availability_topic"] = _config.topic_prefix + String("/status");
-            doc["payload_on"] = "on";
-            doc["payload_off"] = "off";
-
-            JsonObject device = doc.createNestedObject("device");
-            device.createNestedArray("identifiers").add(_config.client_id);
-            device["name"] = _config.client_id;
-            device["manufacturer"] = "kestro";
-            device["model"] = "mancave";
-
-            String payload;
-            serializeJson(doc, payload);
-
-            mqtt.publish(discoveryTopic.c_str(), payload.c_str(), true);
-        }
+        // Publish Home Assistant MQTT Discovery payloads from birth.json
+        publishBirthMessage();
         return true;
     }
 
@@ -99,7 +77,7 @@ bool MqttController::reconnect()
 void MqttController::stop()
 {
     // Publish retained offline status and disconnect cleanly
-    publish("status", "offline", true);
+    publish("ventilation/availability", "offline", true);
     if (mqtt.connected())
     {
         mqtt.disconnect();
@@ -118,6 +96,11 @@ void MqttController::mqttCallback(char *topic, byte *payload, unsigned int lengt
     String topicStr = String(topic);
     String payloadStr = String(message);
 
+    Serial.print("Received message on topic: ");
+    Serial.println(topicStr);
+    Serial.print("Payload: ");
+    Serial.println(payloadStr);
+
     // Remove prefix from topic
     if (topicStr.startsWith(mqtt->_config.topic_prefix))
     {
@@ -125,23 +108,26 @@ void MqttController::mqttCallback(char *topic, byte *payload, unsigned int lengt
     }
 
     // Dispatch to appropriate callbacks based on topic
-    if (topicStr == "fan/power")
+    if (topicStr == "ventilation/control")
     {
         if (mqtt->_powerCallback)
         {
             bool on = (payloadStr == "ON" || payloadStr == "on" || payloadStr == "1");
             mqtt->_powerCallback(on);
+            mqtt->publish("ventilation/state", payloadStr.c_str(), false);
         }
     }
-    else if (topicStr.startsWith("fan/group/"))
+    else if (topicStr.startsWith("ventilation/group/"))
     {
         if (mqtt->_groupCallback)
         {
-            // extract group index
-            String idxStr = topicStr.substring(String("fan/group/").length());
-            int groupIdx = idxStr.toInt();
-            int speed = payloadStr.toInt();
-            mqtt->_groupCallback(groupIdx, speed);
+            // Parse pattern: ventilation/group/X/speed/set using sscanf
+            int groupIdx;
+            if (sscanf(topicStr.c_str(), "ventilation/group/%d/speed/set", &groupIdx) == 1)
+            {
+                int speed = payloadStr.toInt();
+                mqtt->_groupCallback(groupIdx - 1, speed);
+            }
         }
     }
 }
@@ -159,9 +145,9 @@ void MqttController::setFanRpm(int index, unsigned long rpm)
 
     if (_lastFanRpms[index] != rpm)
     {
-        char subtopic[32];
+        char subtopic[64];
         char value[32];
-        snprintf(subtopic, sizeof(subtopic), "fan/%d/rpm", index);
+        snprintf(subtopic, sizeof(subtopic), "ventilation/group/%d/speed/state", index + 1);
         snprintf(value, sizeof(value), "%lu", rpm);
         publish(subtopic, value);
         _lastFanRpms[index] = rpm;
@@ -185,5 +171,71 @@ void MqttController::setAdc(int channel, float voltage)
         snprintf(value, sizeof(value), "%.3f", voltage);
         publish(subtopic, value);
         _lastAdcValues[channel] = voltage;
+    }
+}
+
+void MqttController::publishBirthMessage()
+{
+    // Read birth.json from LittleFS
+    if (!LittleFS.exists("/birth.json"))
+    {
+        Serial.println("ERROR: birth.json not found, skipping birth message");
+        return;
+    }
+
+    File file = LittleFS.open("/birth.json", "r");
+    if (!file)
+    {
+        Serial.println("ERROR: Could not open birth.json");
+        return;
+    }
+
+    // Parse the birth.json file
+    DynamicJsonDocument birthDoc(4096); // Adjust size as needed
+    DeserializationError error = deserializeJson(birthDoc, file);
+    file.close();
+
+    if (error)
+    {
+        Serial.print("ERROR: parsing birth.json: ");
+        Serial.println(error.c_str());
+        return;
+    }
+
+    // Replace template variables in the entire birth document
+    String birthStr;
+    serializeJson(birthDoc, birthStr);
+
+    birthStr.replace("${topic_prefix}", _config.topic_prefix);
+    birthStr.replace("${client_id}", _config.client_id);
+
+    // Build birth message topic: homeassistant/device/<client_id>/config
+    String birthTopic = String("homeassistant/device/") + _config.client_id + "/config";
+
+    // Check if MQTT is connected before publishing
+    if (!mqtt.connected())
+    {
+        Serial.println("ERROR: MQTT not connected, cannot publish birth message");
+        return;
+    }
+
+    // Check if the message fits in the MQTT buffer
+    if (birthStr.length() > mqtt.getBufferSize())
+    {
+        Serial.println("ERROR: Birth message too large for MQTT buffer!");
+        Serial.println("Consider increasing MQTT_MAX_PACKET_SIZE or splitting the message");
+        return;
+    }
+
+    // Publish the complete birth message
+    bool publishResult = mqtt.publish(birthTopic.c_str(), birthStr.c_str(), true);
+    if (publishResult)
+    {
+        Serial.print("SUCCESS: Published birth message to: ");
+        Serial.println(birthTopic);
+    }
+    else
+    {
+        Serial.println("ERROR: Failed to publish birth message - message may be too large or network issue");
     }
 }

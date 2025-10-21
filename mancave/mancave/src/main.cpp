@@ -23,29 +23,10 @@ struct Config
     MqttController::Config mqtt;
 } config;
 
-// Fan configuration
-const int NUM_FANS = 6;
-const int FANS_PER_GROUP = 3;
-
-// PWM pins for fan control (GPIO numbers) - One pin per group
-const int FAN_PWM_PINS[2] = {14, 12}; // D5, D6 (one pin per group)
-
-// Tach pins for RPM reading (GPIO numbers)
-const int FAN_TACH_PINS[NUM_FANS] = {16, 0, 2, 3, 1, 10}; // D0, D3, D4, RX, TX, SD3
-
-// Power pin for fan control
-const int FAN_POWER_PIN = 9; // GPIO9 (SD2)
-
 // Controller pointers
 FanController *fanController;
 ADS1115Controller *adc;
 MqttController *mqttController;
-
-// Last published values
-struct
-{
-    float adc[4] = {0};
-} lastPublished;
 
 bool loadConfig()
 {
@@ -100,8 +81,6 @@ void setupOTA()
     ArduinoOTA.begin();
 }
 
-// MQTT callbacks are registered with the MqttController in setup()
-
 // Named callback functions (prefer methods over lambdas)
 void mqttPowerCallback(bool on)
 {
@@ -148,11 +127,6 @@ void setup()
     }
     adc->setGain(GAIN_TWOTHIRDS); // For reading 0-6.144V
 
-    Serial.println("Connecting to FanController...");
-
-    // Initialize Fan Controller
-    fanController = new FanController(FAN_PWM_PINS, FAN_TACH_PINS, NUM_FANS, FANS_PER_GROUP, FAN_POWER_PIN);
-
     Serial.println("Connecting to Wifi " + config.wifi.ssid + "(" + config.wifi.password + ")" + "...");
 
     WiFi.mode(WIFI_STA);
@@ -165,7 +139,15 @@ void setup()
         ESP.restart();
     }
 
+    // Setup OTA after WiFi is connected
+    setupOTA();
+    Serial.println("OTA configured");
     Serial.println("Connecting to MQTT " + config.mqtt.server + "...");
+
+    Serial.println("Connecting to FanController...");
+    fanController = new FanController();
+    fanController->begin();
+
     // Setup MQTT
     MqttController::Config mqttConfig = {
         config.mqtt.server,
@@ -174,9 +156,9 @@ void setup()
         config.mqtt.password,
         config.mqtt.client_id,
         config.mqtt.topic_prefix};
-        mqttController = new MqttController(mqttConfig);
-        // register named callback functions so main doesn't need MQTT logic
-        mqttController->begin(mqttPowerCallback, mqttGroupCallback);
+    mqttController = new MqttController(mqttConfig);
+    // register named callback functions so main doesn't need MQTT logic
+    mqttController->begin(mqttPowerCallback, mqttGroupCallback);
 
     Serial.println("Setup done");
 }
@@ -193,9 +175,9 @@ void loop()
     if (millis() - lastUpdate >= 10000)
     {
         // Publish fan RPM values
-        for (int i = 0; i < NUM_FANS; i++)
+        for (int i = 0; i < FanController::FAN_GROUPS; ++i)
         {
-            unsigned long rpm = fanController->getFanRPM(i);
+            unsigned long rpm = fanController->getGroupRPM(i);
             mqttController->setFanRpm(i, rpm);
             Serial.printf("Fan %d RPM: %lu\n", i, rpm);
         }
