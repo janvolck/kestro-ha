@@ -1,9 +1,9 @@
 {
     "device": {
         "identifiers": [
-            "kestro_mancave_fan_controller"
+            "kestro_mancave_iot_controller"
         ],
-        "name": "Mancave Fan Controller",
+        "name": "Mancave IOT Controller",
         "model": "ESP8266",
         "sw_version": "1.0.0",
         "suggested_area": "mancave"
@@ -18,7 +18,7 @@
             "name": "Mancave Ventilation Group 1",
             "icon": "mdi:fan",
             "unique_id": "mancave_ventilation_group_1",
-            "availability_topic": "${topic_prefix}/ventilation/availability",
+            "availability_topic": "${topic_prefix}/mancave_iot/availability",
             "command_topic": "${topic_prefix}/ventilation/control",
             "state_topic": "${topic_prefix}/ventilation/state",
             "percentage_command_topic": "${topic_prefix}/ventilation/group/1/speed/set",
@@ -32,7 +32,7 @@
             "name": "Mancave Ventilation Group 2",
             "icon": "mdi:fan",
             "unique_id": "mancave_ventilation_group_2",
-            "availability_topic": "${topic_prefix}/ventilation/availability",
+            "availability_topic": "${topic_prefix}/mancave_iot/availability",
             "command_topic": "${topic_prefix}/ventilation/control",
             "state_topic": "${topic_prefix}/ventilation/state",
             "percentage_command_topic": "${topic_prefix}/ventilation/group/2/speed/set",
@@ -40,6 +40,17 @@
             "payload_on": "on",
             "payload_off": "off",
             "retain": true
+        },
+        "waterwell_garden": {
+            "platform": "sensor",
+            "device_class": "volume_storage",
+            "state_class": "measurement",
+            "unit_of_measurement": "l",
+            "name": "Waterwell Garden",
+            "icon": "mdi:water-well",
+            "unique_id": "waterwell_garden",
+            "availability_topic": "${topic_prefix}/mancave_iot/availability",
+            "state_topic": "${topic_prefix}/waterwell/1/level"
         }
     }
 }

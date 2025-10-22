@@ -182,13 +182,10 @@ void loop()
             Serial.printf("Fan %d RPM: %lu\n", i, rpm);
         }
 
-        // Publish ADC values via MQTT controller
-        for (int i = 0; i < 4; i++)
-        {
-            float voltage = adc->readVoltage(i);
-            mqttController->setAdc(i, voltage);
-            Serial.printf("ADC Channel %d: %.3fV\n", i, voltage);
-        }
+        // Publish waterlevel values via MQTT controller
+        float voltage = adc->readVoltage(0);
+        mqttController->setWaterLevel(0, voltage);
+        Serial.printf("Water Level: %.3f\n", voltage);
 
         lastUpdate = millis();
     }

@@ -7,7 +7,7 @@ MqttController::MqttController(Config config)
 {
     // start with empty last rpm vector; will resize on first setFanRpm call
     _lastFanRpms = std::vector<unsigned long>();
-    _lastAdcValues = std::vector<float>();
+    _lastWaterLevels = std::vector<float>();
 
     // Increase MQTT buffer size for large birth messages
     mqtt.setBufferSize(8192); // Increase from default 256 bytes to 8KB
@@ -46,7 +46,7 @@ bool MqttController::reconnect()
 
     // Prepare topic strings
     String prefix = _config.topic_prefix + "/";
-    String availabilityTopic = prefix + "ventilation/availability";
+    String availabilityTopic = prefix + "mancave_iot/availability";
 
     // Set Last Will message so broker will mark us offline if we disconnect unexpectedly.
     // willTopic, willQos=1, willRetain=true, willMessage="offline"
@@ -63,7 +63,7 @@ bool MqttController::reconnect()
 
         // Publish initial states
         // Publish retained birth message so other clients know we're online
-        publish("ventilation/availability", "online", true);
+        publish("mancave_iot/availability", "online", true);
 
         // Publish Home Assistant MQTT Discovery payloads from birth.json
         publishBirthMessage();
@@ -77,7 +77,7 @@ bool MqttController::reconnect()
 void MqttController::stop()
 {
     // Publish retained offline status and disconnect cleanly
-    publish("ventilation/availability", "offline", true);
+    publish("mancave_iot/availability", "offline", true);
     if (mqtt.connected())
     {
         mqtt.disconnect();
@@ -154,23 +154,23 @@ void MqttController::setFanRpm(int index, unsigned long rpm)
     }
 }
 
-void MqttController::setAdc(int channel, float voltage)
+void MqttController::setWaterLevel(int index, float level)
 {
-    if (channel < 0)
+    if (index < 0)
         return;
 
-    if ((int)_lastAdcValues.size() <= channel)
+    if ((int)_lastWaterLevels.size() <= index)
     {
-        _lastAdcValues.resize(channel + 1, 0.0f);
+        _lastWaterLevels.resize(index + 1, 0.0f);
     }
 
-    if (fabs(_lastAdcValues[channel] - voltage) > 0.01f)
+    if (fabs(_lastWaterLevels[index] - level) > 0.01f)
     {
         char subtopic[20], value[16];
-        snprintf(subtopic, sizeof(subtopic), "adc/%d", channel);
-        snprintf(value, sizeof(value), "%.3f", voltage);
+        snprintf(subtopic, sizeof(subtopic), "waterwell/%d/level", index + 1);
+        snprintf(value, sizeof(value), "%.3f", level);
         publish(subtopic, value);
-        _lastAdcValues[channel] = voltage;
+        _lastWaterLevels[index] = level;
     }
 }
 
