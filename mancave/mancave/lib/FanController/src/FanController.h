@@ -7,7 +7,7 @@ class FanController
 {
 public:
     // Fan configuration
-    static const int FAN_POWER_PIN = 2;
+    static const int FAN_POWER_PIN = 3;
     static const int FAN_GROUPS = 2;
     static const int FAN_PWM_PINS[FAN_GROUPS];
     static const int FAN_TACH_PINS[FAN_GROUPS];
