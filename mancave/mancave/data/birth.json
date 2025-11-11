@@ -45,7 +45,7 @@
             "platform": "sensor",
             "device_class": "volume_storage",
             "state_class": "measurement",
-            "unit_of_measurement": "l",
+            "unit_of_measurement": "L",
             "name": "Waterwell Garden",
             "icon": "mdi:water-well",
             "unique_id": "waterwell_garden",
