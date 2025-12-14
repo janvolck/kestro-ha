@@ -120,6 +120,9 @@ void FanController::update()
                 _rpm[i] = (_pulseCount[i] * 60000) / (2 * interval);
             }
 
+            // Debug output
+            Serial.println("Fan Group " + String(i + 1) + " RPM: " + String(_rpm[i]) + " (Pulses: " + String(_pulseCount[i]) + " Interval: " + String(interval) + "ms)");
+
             // reset the pulse count for the next interval
             _pulseCount[i] = 0;
 
@@ -128,9 +131,6 @@ void FanController::update()
             {
                 _rpm[i] = 0;
             }
-
-            // Debug output
-            Serial.println("Fan Group " + String(i + 1) + " RPM: " + String(_rpm[i]));
         }
         lastRpmUpdate = now;
     }
