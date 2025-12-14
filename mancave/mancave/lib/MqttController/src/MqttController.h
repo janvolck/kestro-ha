@@ -29,6 +29,7 @@ public:
     void begin(PowerCallback powerCallback, GroupSpeedCallback groupCallback);
     void update();
     void publish(const char *subtopic, const char *value, bool retained = true);
+    void setFanState(int index, unsigned long state);
     void setFanRpm(int index, unsigned long rpm);
     void setWaterLevel(int index, float level);
     void stop();
@@ -42,6 +43,7 @@ private:
     MessageCallback _callback;
     PowerCallback _powerCallback;
     GroupSpeedCallback _groupCallback;
+    std::vector<unsigned long> _lastFanStates;
     std::vector<unsigned long> _lastFanRpms;
     std::vector<float> _lastWaterLevels;
 

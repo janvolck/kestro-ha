@@ -4,7 +4,8 @@
         "password": "YOUR_PASSWORD"
     },
     "device": {
-        "hostname": "YOUR_HOSTNAME"
+        "hostname": "YOUR_HOSTNAME",
+        "enable_ads1115": true | false
     },
     "mqtt": {
         "server": "YOUR_MQTT_SERVER",
@@ -12,6 +13,6 @@
         "username": "YOUR_MQTT_USERNAME",
         "password": "YOUR_MQTT_PASSWORD",
         "client_id": "YOUR_CLIENT_ID",
-        "topic_prefix": "mancave"
+        "topic_prefix": "YOUR_TOPIC_PREFIX"
     }
 }

@@ -5,7 +5,7 @@
 MqttController::MqttController(Config config)
     : _config(config), mqtt(_wifiClient)
 {
-    // start with empty last rpm vector; will resize on first setFanRpm call
+    _lastFanStates = std::vector<unsigned long>();
     _lastFanRpms = std::vector<unsigned long>();
     _lastWaterLevels = std::vector<float>();
 
@@ -44,26 +44,24 @@ bool MqttController::reconnect()
 
     Serial.print("Connecting to MQTT... ");
 
-    // Prepare topic strings
-    String prefix = _config.topic_prefix + "/";
-    String availabilityTopic = prefix + "mancave_iot/availability";
+    String lastWillTopic = _config.topic_prefix + "/availability";
 
     // Set Last Will message so broker will mark us offline if we disconnect unexpectedly.
     // willTopic, willQos=1, willRetain=true, willMessage="offline"
     if (mqtt.connect(_config.client_id.c_str(),
                      _config.username.c_str(),
                      _config.password.c_str(),
-                     availabilityTopic.c_str(), 1, true, "offline"))
+                     lastWillTopic.c_str(), 1, true, "offline"))
     {
         Serial.println("connected");
 
         // Subscribe to control topics
-        mqtt.subscribe((prefix + "ventilation/control").c_str());
-        mqtt.subscribe((prefix + "ventilation/group/#").c_str());
+        mqtt.subscribe((_config.topic_prefix + "/ventilation/control").c_str());
+        mqtt.subscribe((_config.topic_prefix + "/ventilation/group/#").c_str());
 
         // Publish initial states
         // Publish retained birth message so other clients know we're online
-        publish("mancave_iot/availability", "online", true);
+        publish("availability", "online", true);
 
         // Publish Home Assistant MQTT Discovery payloads from birth.json
         publishBirthMessage();
@@ -77,7 +75,7 @@ bool MqttController::reconnect()
 void MqttController::stop()
 {
     // Publish retained offline status and disconnect cleanly
-    publish("mancave_iot/availability", "offline", true);
+    publish("availability", "offline", true);
     if (mqtt.connected())
     {
         mqtt.disconnect();
@@ -132,6 +130,28 @@ void MqttController::mqttCallback(char *topic, byte *payload, unsigned int lengt
     }
 }
 
+void MqttController::setFanState(int index, unsigned long state)
+{
+    if (index < 0)
+        return;
+
+    if ((int)_lastFanStates.size() <= index)
+    {
+        // resize and initialize to zero
+        _lastFanStates.resize(index + 1, 0);
+    }
+
+    if (_lastFanStates[index] != state)
+    {
+        char subtopic[64];
+        char value[32];
+        snprintf(subtopic, sizeof(subtopic), "ventilation/group/%d/speed/state", index + 1);
+        snprintf(value, sizeof(value), "%lu", state);
+        publish(subtopic, value);
+        _lastFanStates[index] = state;
+    }
+}
+
 void MqttController::setFanRpm(int index, unsigned long rpm)
 {
     if (index < 0)
@@ -147,7 +167,7 @@ void MqttController::setFanRpm(int index, unsigned long rpm)
     {
         char subtopic[64];
         char value[32];
-        snprintf(subtopic, sizeof(subtopic), "ventilation/group/%d/speed/state", index + 1);
+        snprintf(subtopic, sizeof(subtopic), "ventilation/group/%d/speed/rpm", index + 1);
         snprintf(value, sizeof(value), "%lu", rpm);
         publish(subtopic, value);
         _lastFanRpms[index] = rpm;
@@ -166,7 +186,8 @@ void MqttController::setWaterLevel(int index, float level)
 
     if (fabs(_lastWaterLevels[index] - level) > 0.01f)
     {
-        char subtopic[20], value[16];
+        char subtopic[64];
+        char value[16];
         snprintf(subtopic, sizeof(subtopic), "waterwell/%d/level", index + 1);
         snprintf(value, sizeof(value), "%.3f", level);
         publish(subtopic, value);

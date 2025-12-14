@@ -1,24 +1,24 @@
 {
     "device": {
         "identifiers": [
-            "kestro_mancave_iot_controller"
+            "area_iot_controller"
         ],
         "name": "Mancave IOT Controller",
         "model": "ESP8266",
         "sw_version": "1.0.0",
-        "suggested_area": "mancave"
+        "suggested_area": "area"
     },
     "origin": {
-        "name": "kestro-iot",
+        "name": "iot",
         "sw_version": "1.0.0"
     },
     "components": {
-        "mancave_ventilation_group_1": {
+        "area_ventilation_group_1": {
             "platform": "fan",
             "name": "Mancave Ventilation Group 1",
             "icon": "mdi:fan",
-            "unique_id": "mancave_ventilation_group_1",
-            "availability_topic": "${topic_prefix}/mancave_iot/availability",
+            "unique_id": "area_ventilation_group_1",
+            "availability_topic": "${topic_prefix}/area_iot/availability",
             "command_topic": "${topic_prefix}/ventilation/control",
             "state_topic": "${topic_prefix}/ventilation/state",
             "percentage_command_topic": "${topic_prefix}/ventilation/group/1/speed/set",
@@ -27,12 +27,12 @@
             "payload_off": "off",
             "retain": true
         },
-        "mancave_ventilation_group_2": {
+        "area_ventilation_group_2": {
             "platform": "fan",
             "name": "Mancave Ventilation Group 2",
             "icon": "mdi:fan",
-            "unique_id": "mancave_ventilation_group_2",
-            "availability_topic": "${topic_prefix}/mancave_iot/availability",
+            "unique_id": "area_ventilation_group_2",
+            "availability_topic": "${topic_prefix}/area_iot/availability",
             "command_topic": "${topic_prefix}/ventilation/control",
             "state_topic": "${topic_prefix}/ventilation/state",
             "percentage_command_topic": "${topic_prefix}/ventilation/group/2/speed/set",
@@ -41,15 +41,15 @@
             "payload_off": "off",
             "retain": true
         },
-        "waterwell_garden": {
+        "waterwell": {
             "platform": "sensor",
             "device_class": "volume_storage",
             "state_class": "measurement",
             "unit_of_measurement": "L",
-            "name": "Waterwell Garden",
+            "name": "Waterwell",
             "icon": "mdi:water-well",
-            "unique_id": "waterwell_garden",
-            "availability_topic": "${topic_prefix}/mancave_iot/availability",
+            "unique_id": "waterwell",
+            "availability_topic": "${topic_prefix}/area_iot/availability",
             "state_topic": "${topic_prefix}/waterwell/1/level"
         }
     }

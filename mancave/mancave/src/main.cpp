@@ -15,6 +15,7 @@
 struct Config
 {
     String hostname;
+    boolean enable_ads1115;
     struct
     {
         String ssid;
@@ -51,6 +52,7 @@ bool loadConfig()
     }
 
     config.hostname = doc["device"]["hostname"].as<String>();
+    config.enable_ads1115 = doc["device"]["enable_ads1115"] | true;
 
     config.wifi.ssid = doc["wifi"]["ssid"].as<String>();
     config.wifi.password = doc["wifi"]["password"].as<String>();
@@ -60,7 +62,7 @@ bool loadConfig()
     config.mqtt.username = doc["mqtt"]["username"].as<String>();
     config.mqtt.password = doc["mqtt"]["password"].as<String>();
     config.mqtt.client_id = doc["mqtt"]["client_id"] | config.hostname;
-    config.mqtt.topic_prefix = doc["mqtt"]["topic_prefix"] | "mancave";
+    config.mqtt.topic_prefix = doc["mqtt"]["topic_prefix"] | "kestro";
 
     return true;
 }
@@ -114,18 +116,21 @@ void setup()
         }
     }
 
-    Serial.println("Connecting to ADS1115...");
     // Initialize ADC
     adc = new ADS1115Controller();
-    if (!adc->begin())
+    if (config.enable_ads1115)
     {
-        Serial.println("Failed to initialize ADS1115");
-        while (true)
+        Serial.println("Connecting to ADS1115...");
+        if (!adc->begin())
         {
-            delay(1000);
+            Serial.println("Failed to initialize ADS1115");
+            while (true)
+            {
+                delay(1000);
+            }
         }
+        adc->setGain(GAIN_TWOTHIRDS); // For reading 0-6.144V
     }
-    adc->setGain(GAIN_TWOTHIRDS); // For reading 0-6.144V
 
     Serial.println("Connecting to Wifi " + config.wifi.ssid + "(" + config.wifi.password + ")" + "...");
 
@@ -174,18 +179,25 @@ void loop()
     static unsigned long lastUpdate = 0;
     if (millis() - lastUpdate >= 10000)
     {
-        // Publish fan RPM values
+        // Publish fan states
         for (int i = 0; i < FanController::FAN_GROUPS; ++i)
         {
+            unsigned long speed = fanController->getGroupSpeed(i);
             unsigned long rpm = fanController->getGroupRPM(i);
+
+            mqttController->setFanState(i, speed);
             mqttController->setFanRpm(i, rpm);
-            Serial.printf("Fan %d RPM: %lu\n", i, rpm);
+
+            Serial.printf("Fan %d Speed: %lu RPM: %lu\n", i, speed, rpm);
         }
 
         // Publish waterlevel values via MQTT controller
-        float voltage = adc->readVoltage(0);
-        mqttController->setWaterLevel(0, voltage);
-        Serial.printf("Water Level: %.3f\n", voltage);
+        if (config.enable_ads1115)
+        {
+            float voltage = adc->readVoltage(0);
+            mqttController->setWaterLevel(0, voltage);
+            Serial.printf("Water Level: %.3f\n", voltage);
+        }
 
         lastUpdate = millis();
     }
