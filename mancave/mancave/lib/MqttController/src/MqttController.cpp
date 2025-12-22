@@ -7,7 +7,7 @@ MqttController::MqttController(Config config)
 {
     _lastFanStates = std::vector<unsigned long>();
     _lastFanRpms = std::vector<unsigned long>();
-    _lastWaterLevels = std::vector<float>();
+    _lastWaterLevels = std::vector<int>();
 
     // Increase MQTT buffer size for large birth messages
     mqtt.setBufferSize(8192); // Increase from default 256 bytes to 8KB
@@ -174,22 +174,24 @@ void MqttController::setFanRpm(int index, unsigned long rpm)
     }
 }
 
-void MqttController::setWaterLevel(int index, float level)
+void MqttController::setWaterLevel(int index, int level)
 {
     if (index < 0)
         return;
 
     if ((int)_lastWaterLevels.size() <= index)
     {
-        _lastWaterLevels.resize(index + 1, 0.0f);
+        _lastWaterLevels.resize(index + 1, 0);
     }
 
-    if (fabs(_lastWaterLevels[index] - level) > 0.01f)
+    // take into account small fluctuations by only updating if level changed significantly
+    // difference must be bigger then 5 liters
+    if (abs(_lastWaterLevels[index] - level) > 5)
     {
         char subtopic[64];
         char value[16];
         snprintf(subtopic, sizeof(subtopic), "waterwell/%d/level", index + 1);
-        snprintf(value, sizeof(value), "%.3f", level);
+        snprintf(value, sizeof(value), "%d", level);
         publish(subtopic, value);
         _lastWaterLevels[index] = level;
     }

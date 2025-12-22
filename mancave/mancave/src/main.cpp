@@ -16,6 +16,7 @@ struct Config
 {
     String hostname;
     boolean enable_ads1115;
+    int waterlevel_multiplier;
     struct
     {
         String ssid;
@@ -53,6 +54,7 @@ bool loadConfig()
 
     config.hostname = doc["device"]["hostname"].as<String>();
     config.enable_ads1115 = doc["device"]["enable_ads1115"] | true;
+    config.waterlevel_multiplier = doc["waterwell"]["waterlevel_multiplier"] | 5000;    
 
     config.wifi.ssid = doc["wifi"]["ssid"].as<String>();
     config.wifi.password = doc["wifi"]["password"].as<String>();
@@ -195,8 +197,9 @@ void loop()
         if (config.enable_ads1115)
         {
             float voltage = adc->readVoltage(0);
-            mqttController->setWaterLevel(0, voltage);
-            Serial.printf("Water Level: %.3f\n", voltage);
+            int level = (voltage * config.waterlevel_multiplier);
+            mqttController->setWaterLevel(0, level);
+            Serial.printf("Water Level: %.3f --> %d\n", voltage, (int)level);
         }
 
         lastUpdate = millis();

@@ -31,7 +31,7 @@ public:
     void publish(const char *subtopic, const char *value, bool retained = true);
     void setFanState(int index, unsigned long state);
     void setFanRpm(int index, unsigned long rpm);
-    void setWaterLevel(int index, float level);
+    void setWaterLevel(int index, int level);
     void stop();
     bool isConnected() { return mqtt.connected(); }
     void publishBirthMessage();
@@ -45,7 +45,7 @@ private:
     GroupSpeedCallback _groupCallback;
     std::vector<unsigned long> _lastFanStates;
     std::vector<unsigned long> _lastFanRpms;
-    std::vector<float> _lastWaterLevels;
+    std::vector<int> _lastWaterLevels;
 
     bool reconnect();
     static void mqttCallback(char *topic, byte *payload, unsigned int length, void *controller);
