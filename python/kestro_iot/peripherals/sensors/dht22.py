@@ -32,7 +32,13 @@ class Dht22(BaseTemperatureSensor, BaseHumiditySensor):
                 temperature = self._dht22.temperature
                 humidity = self._dht22.humidity
 
-                if self.temperature != temperature or self.humidity != humidity:
+                # Only update if there's at least 0.5 difference or if values are None (first reading)
+                temp_changed = (self.temperature is None or 
+                               (temperature is not None and abs(self.temperature - temperature) >= 0.5))
+                humidity_changed = (self.humidity is None or 
+                                   (humidity is not None and abs(self.humidity - humidity) >= 0.5))
+
+                if temp_changed or humidity_changed:
                     self.temperature = temperature
                     self.humidity = humidity
 
