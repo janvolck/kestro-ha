@@ -70,9 +70,10 @@ class GpioManager:
         self._devices.pop(id)
 
     def status(self):
-        result = {"inputs": [], "outputs": []}
+        result = {"inputs": [], "outputs": [], "pulses": []}
         inputs = []
         outputs = []
+        pulses = []
 
         for device in self._devices.values():
             device_status = device.status()
@@ -85,11 +86,18 @@ class GpioManager:
                     for input in device_status["inputs"]:
                         inputs.append(input)
 
+                if "pulses" in device_status and device_status["pulses"]:
+                    for pulse in device_status["pulses"]:
+                        pulses.append(pulse)
+
         if len(inputs) > 0:
             result["inputs"] = inputs
 
         if len(outputs) > 0:
             result["outputs"] = outputs
+
+        if len(pulses) > 0:
+            result["pulses"] = pulses
 
         return result
 

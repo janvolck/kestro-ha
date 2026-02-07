@@ -12,6 +12,7 @@ class BoardGpio(BaseGpio):
 
         self._configuration = configuration[id]
         self.__pin_states: dict[str, bool] = {}
+        self.__pin_intervals: dict[str, float] = {}
         self.__pins: dict[str, digitalio.DigitalInOut] = {}
 
         for pin_id in self._configuration:
@@ -57,11 +58,14 @@ class BoardGpio(BaseGpio):
 
             if gpio_mode and board_pin:
                 board_io = digitalio.DigitalInOut(board_pin)
-                if "input" == gpio_mode:
+                if "input" == gpio_mode or "pulses" == gpio_mode:
                     board_io.switch_to_input(pull=gpio_state)
                     self._inputs[gpio_id] = board_io.value
                     self.__pins[gpio_id] = board_io
                     self.__pin_states[gpio_id] = board_io.value
+                    
+                    if "pulses" == gpio_mode:
+                        self._pulses[gpio_id] = ''
 
                 elif "output" == gpio_mode:
                     board_io.switch_to_output(
@@ -75,9 +79,10 @@ class BoardGpio(BaseGpio):
         pass
 
     def status(self):        
-        result = {"inputs": [], "outputs": []}
+        result = {"inputs": [], "outputs": [], "pulses": []}
         inputs = []
         outputs = []
+        pulses = []
         
         for id, input in self._inputs.items():
             inputs.append({"pin": id, "value": self._convert_pin_state(id, input)})
@@ -85,11 +90,17 @@ class BoardGpio(BaseGpio):
         for id, output in self._outputs.items():
             outputs.append({"pin": id, "value": self._convert_pin_state(id, output)})
 
+        for id, pulse in self._pulses.items():
+            pulses.append({"pin": id, "value": pulse})
+            
         if len(inputs) > 0:
             result["inputs"] = inputs
 
         if len(outputs) > 0:
             result["outputs"] = outputs
+
+        if len(pulses) > 0:
+            result["pulses"] = pulses
 
         return result
 

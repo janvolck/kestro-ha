@@ -54,7 +54,7 @@ bool loadConfig()
 
     config.hostname = doc["device"]["hostname"].as<String>();
     config.enable_ads1115 = doc["device"]["enable_ads1115"] | true;
-    config.waterlevel_multiplier = doc["waterwell"]["waterlevel_multiplier"] | 5000;    
+    config.waterlevel_multiplier = doc["waterwell"]["waterlevel_multiplier"] | 5000;
 
     config.wifi.ssid = doc["wifi"]["ssid"].as<String>();
     config.wifi.password = doc["wifi"]["password"].as<String>();
@@ -198,7 +198,7 @@ void loop()
         {
             float voltage = adc->readVoltage(0);
             int level = (voltage * config.waterlevel_multiplier);
-            mqttController->setWaterLevel(0, level);
+            mqttController->setWaterLevel(0, level, voltage);
             Serial.printf("Water Level: %.3f --> %d\n", voltage, (int)level);
         }
 

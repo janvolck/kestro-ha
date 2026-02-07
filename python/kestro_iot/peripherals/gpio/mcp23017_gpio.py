@@ -35,6 +35,7 @@ class Mcp23017Gpio(BaseGpio):
         self._configuration = configuration[id]
         self.__pin_to_gpio_id: dict[int, str] = {}
         self.__pin_states: dict[str, bool] = {}
+        self.__pin_intervals: dict[str, float] = {}
         self.__pins: dict[str, DigitalInOut] = {}
 
         address = _MCP23017_ADDRESS
@@ -83,12 +84,15 @@ class Mcp23017Gpio(BaseGpio):
                 self.__pin_to_gpio_id[pin] = gpio_id
 
             if gpio_mode:
-                if "input" == gpio_mode:
+                if "input" == gpio_mode or "pulses" == gpio_mode:
                     input_interrupts |= 1 << pin
                     mcp_pin.switch_to_input(pull=gpio_state)
                     self._inputs[gpio_id] = mcp_pin.value
                     self.__pins[gpio_id] = mcp_pin
                     self.__pin_states[gpio_id] = mcp_pin.value
+                    
+                    if "pulses" == gpio_mode:
+                        self._pulses[gpio_id] = ''
 
                 elif "output" == gpio_mode:
                     mcp_pin.switch_to_output(
@@ -107,9 +111,10 @@ class Mcp23017Gpio(BaseGpio):
         pass
 
     def status(self):
-        result = {"inputs": [], "outputs": []}
+        result = {"inputs": [], "outputs": [], "pulses": []}
         inputs = []
         outputs = []
+        pulses = []
 
         for id, input in self._inputs.items():
             inputs.append({"pin": id, "value": self._convert_pin_state(id, input)})
@@ -117,11 +122,18 @@ class Mcp23017Gpio(BaseGpio):
         for id, output in self._outputs.items():
             outputs.append({"pin": id, "value": self._convert_pin_state(id, output)})
 
+        for id, pulse in self._pulses.items():
+            pulses.append({"pin": id, "value": pulse})
+
+
         if len(inputs) > 0:
             result["inputs"] = inputs
 
         if len(outputs) > 0:
             result["outputs"] = outputs
+            
+        if len(pulses) > 0:
+            result["pulses"] = pulses
 
         return result
 

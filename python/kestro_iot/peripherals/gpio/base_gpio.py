@@ -19,6 +19,7 @@ class BaseGpio:
 
         self._outputs: dict[str, bool] = {}
         self._inputs: dict[str, bool] = {}
+        self._pulses: dict[str, str] = {}
         self._invert_value: list[str] = []
 
         self._executor = ThreadPoolExecutor(max_workers=5)
@@ -42,7 +43,7 @@ class BaseGpio:
             self._pin_state_changed_observers.remove(observer)
 
     def status(self):
-        result = {"inputs": [], "outputs": []}
+        result = {"inputs": [], "outputs": [], "pulses": []}
         return result
 
     def has_pin(self, id: str):
