@@ -1,7 +1,7 @@
 import os
 
-from .webapp.controllers import kestro_controller, peripherals_controller
 from .webapp.webserver import WebServer
+from .webapp.controllers import kestro_controller, peripherals_controller
 from .peripherals.peripheral_service import PeripheralService
 from .mqtt.mqtt_service import MqttService
 
